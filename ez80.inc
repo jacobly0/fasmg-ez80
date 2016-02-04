@@ -1,5 +1,20 @@
 define ez80
 
+ez80.adl = 1
+macro assume? expr&
+	match =adl? == val, expr
+		local adl
+		adl = val
+		if adl and 1 = adl
+			ez80.adl = adl
+		else
+			err "illegal value for adl"
+		end if
+	else
+		err "unknown assume statement"
+	end match
+end macro
+
 element ez80.b
 element b?   : ez80.b * $01 + 0
 element i?   : ez80.b * $ed + 0
