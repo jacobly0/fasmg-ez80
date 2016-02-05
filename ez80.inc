@@ -1,5 +1,40 @@
 define ez80
 
+macro ez80.word val
+	db val and $ff, val shr 8 and $ff, val shr 16
+end macro
+
+long? = 3
+macro dl? defs&
+	iterate def, defs
+		local temp
+		match ?, def
+			db 3 dup ?
+		else match times =dup? ?, def
+			temp = times
+			db temp * 3 dup ?
+		else match times =dup? val, def
+			temp = times
+			ez80.word val
+		else
+			ez80.word val
+		end if
+	end iterate
+end macro
+struc dl? expr&
+	label . : long
+	dl? expr
+end struc
+macro rl? count
+	local temp
+	temp = count
+	rb temp * 3
+end macro
+struc rl? defs&
+	label . : long
+	rl defs&
+end struc
+
 ez80.adl = 1
 macro assume? expr&
 	match =adl? == val, expr
