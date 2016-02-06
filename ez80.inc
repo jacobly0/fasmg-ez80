@@ -186,5 +186,35 @@ iterate <name*, code*>,       \
 	end inst
 end iterate
 
+inst rst, addr*
+	local a
+	a = addr
+	if a and 070o = a
+		db 307o or a
+	else
+		err "invalid argument to rst"
+	end if
+end inst
+
+inst im, mode*
+	local m
+	m = mode
+	if m = 0
+		db 355o, 106o
+	else if m = 1
+		db 355o, 126o
+	else if m = 2
+		db 355o, 136o
+	else
+		err "invalid argument to im"
+	end if
+end inst
+
+inst tstio, imm*
+	local i
+	i = imm
+	db 355o, 164o, i
+end inst
+
 purge end?.inst?
 purge inst?
