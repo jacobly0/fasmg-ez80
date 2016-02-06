@@ -1,23 +1,23 @@
 define ez80
 
-macro ez80.word value
-	local val
-	val = value
-	db val and $ff, val shr 8 and $ff, val shr 16
+macro ez80.word val
+	local v
+	v = value
+	db v and $ff, v shr 8 and $ff, v shr 16
 end macro
 
 long? = 3
 macro dl? defs&
 	iterate def, defs
-		local temp
+		local t
 		match ?, def
 			db 3 dup ?
 		else match times =dup? ?, def
-			temp = times
-			db temp * 3 dup ?
+			t = times
+			db t * 3 dup ?
 		else match times =dup? val, def
-			temp = times
-			repeat temp
+			t = times
+			repeat t
 				ez80.word val
 			end repeat
 		else
@@ -30,9 +30,9 @@ struc dl? expr&
 	dl? expr
 end struc
 macro rl? count
-	local temp
-	temp = count
-	rb temp * 3
+	local c
+	c = count
+	rb c * 3
 end macro
 struc rl? defs&
 	label . : long
@@ -120,7 +120,7 @@ macro inst name*, args&
 		ez80.prefix 1, 1
 		name? forward
 	end macro
-	esc macro name?
+	esc macro name? args
 end macro
 macro end?.inst!
 		assume? adl = ez80.adl
