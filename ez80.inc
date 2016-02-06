@@ -1,6 +1,8 @@
 define ez80
 
-macro ez80.word val
+macro ez80.word value
+	local val
+	val = value
 	db val and $ff, val shr 8 and $ff, val shr 16
 end macro
 
@@ -15,10 +17,12 @@ macro dl? defs&
 			db temp * 3 dup ?
 		else match times =dup? val, def
 			temp = times
-			ez80.word val
+			repeat temp
+				ez80.word val
+			end repeat
 		else
-			ez80.word val
-		end if
+			ez80.word def
+		end match
 	end iterate
 end macro
 struc dl? expr&
@@ -35,13 +39,14 @@ struc rl? defs&
 	rl defs&
 end struc
 
-ez80.adl = 1
 macro assume? expr&
 	match =adl? == val, expr
-		local adl
-		adl = val
-		if adl and 1 = adl
-			ez80.adl = adl
+		local temp
+		temp = val
+		if temp and 1 = temp
+			ez80.l = temp
+			ez80.il = temp
+			ez80.adl = temp
 		else
 			err "illegal value for adl"
 		end if
@@ -49,6 +54,7 @@ macro assume? expr&
 		err "unknown assume statement"
 	end match
 end macro
+assume? adl = 1
 
 element ez80.b
 element b?   : ez80.b * $01 + 0
