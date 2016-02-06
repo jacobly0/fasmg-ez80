@@ -84,7 +84,7 @@ macro ez80.prefix s*, is*
 	ez80.l = s
 	ez80.il = is
 	ez80.lil = ez80.l or ez80.il shl 1
-	db ez80.lil or ez80.lil shl 3 or 0x40
+	db ez80.lil or ez80.lil shl 3 or 100o
 end macro
 macro inst name*, args&
 	define name?
@@ -127,9 +127,64 @@ macro end?.inst!
 	esc end macro
 end macro
 
-inst nop
-	db 0x00
-end inst
+iterate <name*, code*>,       \
+	 nop,   <000o>,       \
+	 rlca,  <007o>,       \
+	 rrca,  <017o>,       \
+	 rla,   <027o>,       \
+	 rra,   <037o>,       \
+	 daa,   <047o>,       \
+	 cpl,   <057o>,       \
+	 scf,   <067o>,       \
+	 ccf,   <077o>,       \
+	 halt,  <166o>,       \
+	 exx,   <331o>,       \
+	 di,    <363o>,       \
+	 ei,    <373o>,       \
+	 neg,   <355o, 104o>, \
+	 retn,  <355o, 105o>, \
+	 reti,  <355o, 115o>, \
+	 rrd,   <355o, 147o>, \
+	 rld,   <355o, 157o>, \
+	 slp,   <355o, 166o>, \
+	 stmix, <355o, 175o>, \
+	 rsmix, <355o, 176o>, \
+	 inim,  <355o, 202o>, \
+	 otim,  <355o, 203o>, \
+	 ini2,  <355o, 204o>, \
+	 indm,  <355o, 212o>, \
+	 otdm,  <355o, 213o>, \
+	 ind2,  <355o, 214o>, \
+	 inimr, <355o, 222o>, \
+	 otimr, <355o, 223o>, \
+	 ini2r, <355o, 224o>, \
+	 indmr, <355o, 232o>, \
+	 otdmr, <355o, 233o>, \
+	 ind2r, <355o, 234o>, \
+	 ldi,   <355o, 240o>, \
+	 cpi,   <355o, 241o>, \
+	 ini,   <355o, 242o>, \
+	 outi,  <355o, 243o>, \
+	 outi2, <355o, 244o>, \
+	 ldd,   <355o, 250o>, \
+	 cpd,   <355o, 251o>, \
+	 ind,   <355o, 252o>, \
+	 outd,  <355o, 253o>, \
+	 outd2, <355o, 254o>, \
+	 ldir,  <355o, 260o>, \
+	 cpir,  <355o, 261o>, \
+	 inir,  <355o, 262o>, \
+	 otir,  <355o, 263o>, \
+	 oti2r, <355o, 264o>, \
+	 ldd,   <355o, 270o>, \
+	 cpd,   <355o, 271o>, \
+	 ind,   <355o, 272o>, \
+	 otd,   <355o, 273o>, \
+	 otd2r, <355o, 274o>
+	inst name
+		db code
+	end inst
+end iterate
 
 purge end?.inst?
 purge inst?
