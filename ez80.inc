@@ -3,7 +3,7 @@ define ez80
 macro ez80.word val
 	local v
 	v = value
-	db v and $ff, v shr 8 and $ff, v shr 16
+	db v and 377o, v shr 8 and 377o, v shr 16
 end macro
 
 long? = 3
@@ -57,28 +57,35 @@ end macro
 assume? adl = 1
 
 element ez80.b
-element b?   : ez80.b * $01 + 0
-element i?   : ez80.b * $ed + 0
-element c?   : ez80.b * $01 + 1
-element r?   : ez80.b * $ed + 1
-element d?   : ez80.b * $01 + 2
-element e?   : ez80.b * $01 + 3
-element h?   : ez80.b * $01 + 4
-element ixh? : ez80.b * $dd + 4
-element iyh? : ez80.b * $fd + 4
-element l?   : ez80.b * $01 + 5
-element ixl? : ez80.b * $dd + 5
-element iyl? : ez80.b * $fd + 5
-element a?   : ez80.b * $01 + 7
+element b?   : ez80.b * 001o + 030o
+element nz?  : ez80.b * 001o + 001o
+element z?   : ez80.b * 001o + 011o
+element nc?  : ez80.b * 001o + 021o
+element c?   : ez80.b * 001o + 031o
+element po?  : ez80.b * 001o + 041o
+element pe?  : ez80.b * 001o + 051o
+element p?   : ez80.b * 001o + 061o
+element m?   : ez80.b * 001o + 071o
+element d?   : ez80.b * 001o + 032o
+element e?   : ez80.b * 001o + 033o
+element h?   : ez80.b * 001o + 034o
+element ixh? : ez80.b * 335o + 034o
+element iyh? : ez80.b * 375o + 034o
+element l?   : ez80.b * 001o + 035o
+element ixl? : ez80.b * 335o + 035o
+element iyl? : ez80.b * 375o + 035o
+element a?   : ez80.b * 001o + 037o
+element i?   : ez80.b * 355o + 107o
+element r?   : ez80.b * 355o + 117o
 
 element ez80.w
-element bc?  : ez80.w * $05 + 0
-element de?  : ez80.w * $05 + 1
-element hl?  : ez80.w * $07 + 2
-element ix?  : ez80.w * $dd + 2
-element iy?  : ez80.w * $fd + 2
-element sp?  : ez80.w * $04 + 3
-element af?  : ez80.w * $01 + 3
+element bc?  : ez80.w * 005o + 000o
+element de?  : ez80.w * 005o + 001o
+element hl?  : ez80.w * 007o + 002o
+element ix?  : ez80.w * 335o + 002o
+element iy?  : ez80.w * 375o + 002o
+element sp?  : ez80.w * 004o + 003o
+element af?  : ez80.w * 001o + 003o
 
 macro ez80.prefix s*, is*
 	ez80.l = s
@@ -186,13 +193,42 @@ iterate <name*, code*>,       \
 	end inst
 end iterate
 
+inst ex, args&
+	match =af? =, =af'?, args
+		db 010o
+	else match =de? =, =hl?, args
+		db 353o
+	else match =af'? =, =af?, args
+		db 010o
+	else match =hl? =, =de?, args
+		db 353o
+	else
+		err "invalid arguments to ex"
+	end match
+end inst
+
+inst ret, cond
+	match , cond
+		db 311o
+	else
+		local c
+		c = cond
+		if ~c scale 0                                \
+		  & c relativeto c element 1                 \
+		  & c metadata 1 element 1 relativeto ez80.b \
+		  & c metadata 1 scale 0 and 007o = 001o
+			db c metadata 1 scale 0 and 070o or 300o
+		end if
+	end match
+end inst
+
 inst rst, addr*
 	local a
 	a = addr
 	if a and 070o = a
 		db 307o or a
 	else
-		err "invalid argument to rst"
+		err "invalid arguments to rst"
 	end if
 end inst
 
@@ -206,7 +242,7 @@ inst im, mode*
 	else if m = 2
 		db 355o, 136o
 	else
-		err "invalid argument to im"
+		err "invalid arguments to im"
 	end if
 end inst
 
