@@ -128,14 +128,13 @@ macro inst name*
 		name? args
 	end macro
 	esc macro name? args&
-		local start, size
-	start:	if ~size
+		local before, after
+	before:	if defined after & before = after
 			eval 'err "invalid arguments for ', `name, ': ', `args, '"'
 		end if
 end macro
 macro end?.inst!
-		size = $ - start
-		assume? adl = ez80.adl
+	after:	assume? adl = ez80.adl
 	esc end macro
 end macro
 
