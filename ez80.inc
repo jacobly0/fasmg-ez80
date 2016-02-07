@@ -1,25 +1,26 @@
 define ez80
 
 macro ez80.word val
-	local v
-	v = value
-	db v and 377o, v shr 8 and 377o, v shr 16
+	v =: value
+		db v and 377o, v shr 8 and 377o, v shr 16
+	restore v
 end macro
 
 long? = 3
 macro dl? defs&
 	iterate def, defs
-		local t
 		match ?, def
 			db 3 dup ?
 		else match times =dup? ?, def
-			t = times
-			db t * 3 dup ?
+			t =: times
+				db t * 3 dup ?
+			restore t
 		else match times =dup? val, def
-			t = times
-			repeat t
-				ez80.word val
-			end repeat
+			t =: times
+				repeat t
+					ez80.word val
+				end repeat
+			restore t
 		else
 			ez80.word def
 		end match
@@ -30,9 +31,9 @@ struc dl? expr&
 	dl? expr
 end struc
 macro rl? count
-	local c
-	c = count
-	rb c * 3
+	c =: count
+		rb c * 3
+	restore c
 end macro
 struc rl? defs&
 	label . : long
@@ -41,15 +42,15 @@ end struc
 
 macro assume? expr&
 	match =adl? == val, expr
-		local temp
-		temp = val
-		if temp and 1 = temp
-			ez80.l = temp
-			ez80.il = temp
-			ez80.adl = temp
-		else
-			err "illegal value for adl"
-		end if
+		v =: val
+			if v and 1 = v
+				ez80.l = v
+				ez80.il = v
+				ez80.adl = v
+			else
+				err "illegal value for adl"
+			end if
+		restore v
 	else
 		err "unknown assume statement"
 	end match
@@ -213,62 +214,62 @@ inst ret
 	match, args
 		db 311o
 	else match cond, args
-		local c
-		c = cond
-		if ~c scale 0 & c relativeto c element 1     \
-		  & c metadata 1 element 1 relativeto ez80.b \
-		  & c metadata 1 scale 0 and 007o = 001o
-			db c metadata 1 scale 0 and 070o or 300o
-		end if
+		c =: cond
+			if ~c scale 0 & c relativeto c element 1     \
+			  & c metadata 1 element 1 relativeto ez80.b \
+			  & c metadata 1 scale 0 and 007o = 001o
+				db c metadata 1 scale 0 and 070o or 300o
+			end if
+		restore c
 	end match
 end inst
 
 iterate <name*, code*>, pop, <301o>, push, <305o>
 	inst name
 		match reg, args
-			local r
-			r = reg
-			if ~r scale 0 & r relativeto r element 1     \
-			  & r metadata 1 element 1 relativeto ez80.w \
-			  & r metadata 1 scale 1 and 001o
-				if r metadata 1 scale 1 and 370o
-					db r metadata 1 scale 1
+			r =: reg
+				if ~r scale 0 & r relativeto r element 1     \
+				  & r metadata 1 element 1 relativeto ez80.w \
+				  & r metadata 1 scale 1 and 001o
+					if r metadata 1 scale 1 and 370o
+						db r metadata 1 scale 1
+					end if
+					db r metadata 1 scale 0 or code
 				end if
-				db r metadata 1 scale 0 or code
-			end if
+			restore r
 		end match
 	end inst
 end iterate
 
 inst rst
 	match addr, args
-		local a
-		a = addr
-		if a and 070o = a
-			db 307o or a
-		end if
+		a =: addr
+			if a and 070o = a
+				db 307o or a
+			end if
+		restore a
 	end match
 end inst
 
 inst im
 	match mode, args
-		local m
-		m = mode
-		if m = 0
-			db 355o, 106o
-		else if m = 1
-			db 355o, 126o
-		else if m = 2
-			db 355o, 136o
-		end if
+		m =: mode
+			if m = 0
+				db 355o, 106o
+			else if m = 1
+				db 355o, 126o
+			else if m = 2
+				db 355o, 136o
+			end if
+		restore m
 	end match
 end inst
 
 inst tstio
 	match imm, mode
-		local i
-		i = imm
-		db 355o, 164o, i
+		i =: imm
+			db 355o, 164o, i
+		restore i
 	end match
 end inst
 
