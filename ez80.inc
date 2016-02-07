@@ -93,43 +93,48 @@ macro ez80.prefix s*, is*
 	ez80.lil = ez80.l or ez80.il shl 1
 	db ez80.lil or ez80.lil shl 3 or 100o
 end macro
-macro inst name*, args&
+macro inst name*
 	define name?
-	macro name?.s? forward&
+	macro name?.s? args&
 		ez80.prefix 0, ez80.il
-		name? forward
+		name? args
 	end macro
-	macro name?.l? forward&
+	macro name?.l? args&
 		ez80.prefix 1, ez80.il
-		name? forward
+		name? args
 	end macro
-	macro name?.is? forward&
+	macro name?.is? args&
 		ez80.prefix ez80.l, 0
-		name? forward
+		name? args
 	end macro
-	macro name?.il? forward&
+	macro name?.il? args&
 		ez80.prefix ez80.l, 1
-		name? forward
+		name? args
 	end macro
-	macro name?.sis? forward&
+	macro name?.sis? args&
 		ez80.prefix 0, 0
-		name? forward
+		name? args
 	end macro
-	macro name?.lis? forward&
+	macro name?.lis? args&
 		ez80.prefix 1, 0
-		name? forward
+		name? args
 	end macro
-	macro name?.sil? forward&
+	macro name?.sil? args&
 		ez80.prefix 0, 1
-		name? forward
+		name? args
 	end macro
-	macro name?.lil? forward&
+	macro name?.lil? args&
 		ez80.prefix 1, 1
-		name? forward
+		name? args
 	end macro
-	esc macro name? args
+	esc macro name? args&
+		local start, size
+	start:	if ~size
+			eval 'err "invalid arguments for ', `name, ': ', `args, '"'
+		end if
 end macro
 macro end?.inst!
+		size = $ - start
 		assume? adl = ez80.adl
 	esc end macro
 end macro
@@ -193,7 +198,7 @@ iterate <name*, code*>,       \
 	end inst
 end iterate
 
-inst ex, args&
+inst ex
 	match =af? =, =af'?, args
 		db 010o
 	else match =de? =, =hl?, args
@@ -202,15 +207,13 @@ inst ex, args&
 		db 010o
 	else match =hl? =, =de?, args
 		db 353o
-	else
-		err "invalid arguments to ex"
 	end match
 end inst
 
-inst ret, cond
-	match , cond
+inst ret
+	match, args
 		db 311o
-	else
+	else match cond, args
 		local c
 		c = cond
 		if ~c scale 0                                \
@@ -222,34 +225,36 @@ inst ret, cond
 	end match
 end inst
 
-inst rst, addr*
-	local a
-	a = addr
-	if a and 070o = a
-		db 307o or a
-	else
-		err "invalid arguments to rst"
-	end if
+inst rst
+	match addr, args
+		local a
+		a = addr
+		if a and 070o = a
+			db 307o or a
+		end if
+	end match
 end inst
 
-inst im, mode*
-	local m
-	m = mode
-	if m = 0
-		db 355o, 106o
-	else if m = 1
-		db 355o, 126o
-	else if m = 2
-		db 355o, 136o
-	else
-		err "invalid arguments to im"
-	end if
+inst im
+	match mode, args
+		local m
+		m = mode
+		if m = 0
+			db 355o, 106o
+		else if m = 1
+			db 355o, 126o
+		else if m = 2
+			db 355o, 136o
+		end if
+	end match
 end inst
 
-inst tstio, imm*
-	local i
-	i = imm
-	db 355o, 164o, i
+inst tstio
+	match imm, mode
+		local i
+		i = imm
+		db 355o, 164o, i
+	end match
 end inst
 
 purge end?.inst?
