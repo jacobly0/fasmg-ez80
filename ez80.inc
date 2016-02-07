@@ -80,12 +80,12 @@ element r?   : ez80.b * 355o + 117o
 
 element ez80.w
 element bc?  : ez80.w * 005o + 000o
-element de?  : ez80.w * 005o + 001o
-element hl?  : ez80.w * 007o + 002o
-element ix?  : ez80.w * 335o + 002o
-element iy?  : ez80.w * 375o + 002o
-element sp?  : ez80.w * 004o + 003o
-element af?  : ez80.w * 001o + 003o
+element de?  : ez80.w * 005o + 020o
+element hl?  : ez80.w * 007o + 040o
+element ix?  : ez80.w * 335o + 040o
+element iy?  : ez80.w * 375o + 040o
+element sp?  : ez80.w * 004o + 060o
+element af?  : ez80.w * 001o + 060o
 
 macro ez80.prefix s*, is*
 	ez80.l = s
@@ -215,14 +215,30 @@ inst ret
 	else match cond, args
 		local c
 		c = cond
-		if ~c scale 0                                \
-		  & c relativeto c element 1                 \
+		if ~c scale 0 & c relativeto c element 1     \
 		  & c metadata 1 element 1 relativeto ez80.b \
 		  & c metadata 1 scale 0 and 007o = 001o
 			db c metadata 1 scale 0 and 070o or 300o
 		end if
 	end match
 end inst
+
+iterate <name*, code*>, pop, <301o>, push, <305o>
+	inst name
+		match reg, args
+			local r
+			r = reg
+			if ~r scale 0 & r relativeto r element 1     \
+			  & r metadata 1 element 1 relativeto ez80.w \
+			  & r metadata 1 scale 1 and 001o
+				if r metadata 1 scale 1 and 370o
+					db r metadata 1 scale 1
+				end if
+				db r metadata 1 scale 0 or code
+			end if
+		end match
+	end inst
+end iterate
 
 inst rst
 	match addr, args
