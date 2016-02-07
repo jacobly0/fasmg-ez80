@@ -198,6 +198,45 @@ iterate <name*, code*>,       \
 	end inst
 end iterate
 
+inst inc
+	reg =: args
+		if ~reg scale 0 & reg relativeto reg element 1
+			if reg metadata 1 element 1 relativeto ez80.w \
+			 & reg metadata 1 scale 1 and 004o
+				if reg metadata 1 scale 1 and 370o
+					db reg metadata 1 scale 1
+				end if
+				db reg metadata 1 scale 0 or 003o
+			else if reg metadata 1 element 1 relativeto ez80.b \
+			 & reg metadata 1 scale 0 and 070o = 030o
+				if reg metadata 1 scale 1 and 370o
+					db reg metadata 1 scale 1
+				end if
+				db reg metadata 1 scale 0 shl 3 and 070o or 004o
+			end if
+		end if
+	restore reg
+end inst
+inst dec
+	reg =: args
+		if ~reg scale 0 & reg relativeto reg element 1
+			if reg metadata 1 element 1 relativeto ez80.w \
+			 & reg metadata 1 scale 1 and 004o
+				if reg metadata 1 scale 1 and 370o
+					db reg metadata 1 scale 1
+				end if
+				db reg metadata 1 scale 0 or 013o
+			else if reg metadata 1 element 1 relativeto ez80.b \
+			 & reg metadata 1 scale 0 and 070o = 030o
+				if reg metadata 1 scale 1 and 370o
+					db reg metadata 1 scale 1
+				end if
+				db reg metadata 1 scale 0 shl 3 and 070o or 005o
+			end if
+		end if
+	restore reg
+end inst
+
 inst ex
 	match arg1 =, arg2, args
 		iterate <a1, a2>, arg1, arg2, arg2, arg1
