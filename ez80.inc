@@ -199,14 +199,29 @@ iterate <name*, code*>,       \
 end iterate
 
 inst ex
-	match =af? =, =af'?, args
-		db 010o
-	else match =de? =, =hl?, args
-		db 353o
-	else match =af'? =, =af?, args
-		db 010o
-	else match =hl? =, =de?, args
-		db 353o
+	match arg1 =, arg2, args
+		iterate <a1, a2>, arg1, arg2, arg2, arg1
+			match =af?, a1
+				match =af'?, a2
+					db 010o
+				end match
+			else match ( =sp? ), a1
+				r =: a2
+					if ~r scale 0 & r relativeto r element 1     \
+					  & r metadata 1 element 1 relativeto ez80.w \
+					  & r metadata 1 scale 0 = 040o
+						if r metadata 1 scale 1 and 370o
+							db r metadata 1 scale 1
+						end if
+						db 343o
+					end if
+				restore r
+			else match =de?, a1
+				match =hl?, a2
+					db 353o
+				end match
+			end match
+		end iterate
 	end match
 end inst
 
