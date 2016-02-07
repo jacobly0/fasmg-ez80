@@ -1,9 +1,9 @@
 define ez80
 
-macro ez80.word val
-	v =: value
-		db v and 377o, v shr 8 and 377o, v shr 16
-	restore v
+macro ez80.word v
+	val =: v
+		db val and 377o, val shr 8 and 377o, val shr 16
+	restore val
 end macro
 
 long? = 3
@@ -11,16 +11,16 @@ macro dl? defs&
 	iterate def, defs
 		match ?, def
 			db 3 dup ?
-		else match times =dup? ?, def
-			t =: times
-				db t * 3 dup ?
-			restore t
-		else match times =dup? val, def
-			t =: times
-				repeat t
-					ez80.word val
+		else match t =dup? ?, def
+			times =: t
+				db times * 3 dup ?
+			restore times
+		else match t =dup? v, def
+			times =: t
+				repeat times
+					ez80.word v
 				end repeat
-			restore t
+			restore times
 		else
 			ez80.word def
 		end match
@@ -30,10 +30,10 @@ struc dl? expr&
 	label . : long
 	dl? expr
 end struc
-macro rl? count
-	c =: count
-		rb c * 3
-	restore c
+macro rl? c
+	count =: c
+		rb count * 3
+	restore count
 end macro
 struc rl? defs&
 	label . : long
@@ -41,16 +41,16 @@ struc rl? defs&
 end struc
 
 macro assume? expr&
-	match =adl? == val, expr
-		v =: val
-			if v and 1 = v
-				ez80.l = v
-				ez80.il = v
-				ez80.adl = v
+	match =adl? == v, expr
+		val =: v
+			if val and 1 = val
+				ez80.l = val
+				ez80.il = val
+				ez80.adl = val
 			else
 				err "illegal value for adl"
 			end if
-		restore v
+		restore val
 	else
 		err "unknown assume statement"
 	end match
@@ -140,59 +140,59 @@ macro end?.inst!
 end macro
 
 iterate <name*, code*>,       \
-	 nop,   <000o>,       \
-	 rlca,  <007o>,       \
-	 rrca,  <017o>,       \
-	 rla,   <027o>,       \
-	 rra,   <037o>,       \
-	 daa,   <047o>,       \
-	 cpl,   <057o>,       \
-	 scf,   <067o>,       \
-	 ccf,   <077o>,       \
-	 halt,  <166o>,       \
-	 exx,   <331o>,       \
-	 di,    <363o>,       \
-	 ei,    <373o>,       \
-	 neg,   <355o, 104o>, \
-	 retn,  <355o, 105o>, \
-	 reti,  <355o, 115o>, \
-	 rrd,   <355o, 147o>, \
-	 rld,   <355o, 157o>, \
-	 slp,   <355o, 166o>, \
-	 stmix, <355o, 175o>, \
-	 rsmix, <355o, 176o>, \
-	 inim,  <355o, 202o>, \
-	 otim,  <355o, 203o>, \
-	 ini2,  <355o, 204o>, \
-	 indm,  <355o, 212o>, \
-	 otdm,  <355o, 213o>, \
-	 ind2,  <355o, 214o>, \
-	 inimr, <355o, 222o>, \
-	 otimr, <355o, 223o>, \
-	 ini2r, <355o, 224o>, \
-	 indmr, <355o, 232o>, \
-	 otdmr, <355o, 233o>, \
-	 ind2r, <355o, 234o>, \
-	 ldi,   <355o, 240o>, \
-	 cpi,   <355o, 241o>, \
-	 ini,   <355o, 242o>, \
-	 outi,  <355o, 243o>, \
-	 outi2, <355o, 244o>, \
-	 ldd,   <355o, 250o>, \
-	 cpd,   <355o, 251o>, \
-	 ind,   <355o, 252o>, \
-	 outd,  <355o, 253o>, \
-	 outd2, <355o, 254o>, \
-	 ldir,  <355o, 260o>, \
-	 cpir,  <355o, 261o>, \
-	 inir,  <355o, 262o>, \
-	 otir,  <355o, 263o>, \
-	 oti2r, <355o, 264o>, \
-	 ldd,   <355o, 270o>, \
-	 cpd,   <355o, 271o>, \
-	 ind,   <355o, 272o>, \
-	 otd,   <355o, 273o>, \
-	 otd2r, <355o, 274o>
+         nop,   <000o>,       \
+         rlca,  <007o>,       \
+         rrca,  <017o>,       \
+         rla,   <027o>,       \
+         rra,   <037o>,       \
+         daa,   <047o>,       \
+         cpl,   <057o>,       \
+         scf,   <067o>,       \
+         ccf,   <077o>,       \
+         halt,  <166o>,       \
+         exx,   <331o>,       \
+         di,    <363o>,       \
+         ei,    <373o>,       \
+         neg,   <355o, 104o>, \
+         retn,  <355o, 105o>, \
+         reti,  <355o, 115o>, \
+         rrd,   <355o, 147o>, \
+         rld,   <355o, 157o>, \
+         slp,   <355o, 166o>, \
+         stmix, <355o, 175o>, \
+         rsmix, <355o, 176o>, \
+         inim,  <355o, 202o>, \
+         otim,  <355o, 203o>, \
+         ini2,  <355o, 204o>, \
+         indm,  <355o, 212o>, \
+         otdm,  <355o, 213o>, \
+         ind2,  <355o, 214o>, \
+         inimr, <355o, 222o>, \
+         otimr, <355o, 223o>, \
+         ini2r, <355o, 224o>, \
+         indmr, <355o, 232o>, \
+         otdmr, <355o, 233o>, \
+         ind2r, <355o, 234o>, \
+         ldi,   <355o, 240o>, \
+         cpi,   <355o, 241o>, \
+         ini,   <355o, 242o>, \
+         outi,  <355o, 243o>, \
+         outi2, <355o, 244o>, \
+         ldd,   <355o, 250o>, \
+         cpd,   <355o, 251o>, \
+         ind,   <355o, 252o>, \
+         outd,  <355o, 253o>, \
+         outd2, <355o, 254o>, \
+         ldir,  <355o, 260o>, \
+         cpir,  <355o, 261o>, \
+         inir,  <355o, 262o>, \
+         otir,  <355o, 263o>, \
+         oti2r, <355o, 264o>, \
+         ldd,   <355o, 270o>, \
+         cpd,   <355o, 271o>, \
+         ind,   <355o, 272o>, \
+         otd,   <355o, 273o>, \
+         otd2r, <355o, 274o>
 	inst name
 		db code
 	end inst
@@ -206,16 +206,16 @@ inst ex
 					db 010o
 				end match
 			else match ( =sp? ), a1
-				r =: a2
-					if ~r scale 0 & r relativeto r element 1     \
-					  & r metadata 1 element 1 relativeto ez80.w \
-					  & r metadata 1 scale 0 = 040o
-						if r metadata 1 scale 1 and 370o
-							db r metadata 1 scale 1
+				reg =: a2
+					if ~reg scale 0 & reg relativeto reg element 1 \
+					  & reg metadata 1 element 1 relativeto ez80.w \
+					  & reg metadata 1 scale 0 = 040o
+						if reg metadata 1 scale 1 and 370o
+							db reg metadata 1 scale 1
 						end if
 						db 343o
 					end if
-				restore r
+				restore reg
 			else match =de?, a1
 				match =hl?, a2
 					db 353o
@@ -228,139 +228,129 @@ end inst
 inst ret
 	match, args
 		db 311o
-	else match cond, args
-		c =: cond
-			if ~c scale 0 & c relativeto c element 1     \
-			  & c metadata 1 element 1 relativeto ez80.b \
-			  & c metadata 1 scale 0 and 007o = 001o
-				db c metadata 1 scale 0 and 070o or 300o
+	else
+		cond =: args
+			if ~cond scale 0 & cond relativeto cond element 1 \
+			  & cond metadata 1 element 1 relativeto ez80.b   \
+			  & cond metadata 1 scale 0 and 007o = 001o
+				db cond metadata 1 scale 0 and 070o or 300o
 			end if
-		restore c
+		restore cond
 	end match
 end inst
 
 iterate <name*, code*>, pop, <301o>, push, <305o>
 	inst name
-		match reg, args
-			r =: reg
-				if ~r scale 0 & r relativeto r element 1     \
-				  & r metadata 1 element 1 relativeto ez80.w \
-				  & r metadata 1 scale 1 and 1
-					if r metadata 1 scale 1 and 370o
-						db r metadata 1 scale 1
-					end if
-					db r metadata 1 scale 0 or code
+		reg =: args
+			if ~reg scale 0 & reg relativeto reg element 1 \
+			  & reg metadata 1 element 1 relativeto ez80.w \
+			  & reg metadata 1 scale 1 and 1
+				if reg metadata 1 scale 1 and 370o
+					db reg metadata 1 scale 1
 				end if
-			restore r
-		end match
+				db reg metadata 1 scale 0 or code
+			end if
+		restore reg
 	end inst
 end iterate
 
 inst rst
-	match addr, args
-		a =: addr
-			if a and 070o = a
-				db 307o or a
-			end if
-		restore a
-	end match
+	addr =: args
+		if addr and 070o = addr
+			db addr or 307o
+		end if
+	restore addr
 end inst
 
 inst out
-	match ( =bc? ) =, reg, args
-		r =: reg
-			if ~r scale 0 & r relativeto r element 1     \
-			  & r metadata 1 element 1 relativeto ez80.b \
-			  & r metadata 1 scale 1 = 1                 \
-			  & r metadata 1 scale 0 and 070o = 030o
-				db 355o, r metadata 1 scale 0 shl 3 and 070o or 101o
+	match ( =bc? ) =, r, args
+		reg =: r
+			if ~reg scale 0 & reg relativeto reg element 1 \
+			  & reg metadata 1 element 1 relativeto ez80.b \
+			  & reg metadata 1 scale 1 = 1                 \
+			  & reg metadata 1 scale 0 and 070o = 030o
+				db 355o, reg metadata 1 scale 0 shl 3 and 070o or 101o
 			end if
-		restore r
-	else match ( =c? ) =, reg, args
-		out? (bc), reg
-	else match ( port ) =, =a?, args
-		p =: port
-			db 323o, p
-		restore p
+		restore reg
+	else match ( =c? ) =, r, args
+		out? (bc), r
+	else match ( p ) =, =a?, args
+		port =: p
+			db 323o, port
+		restore port
 	end match
 end inst
 inst in
-	match reg =, ( =bc? ), args
-		r =: reg
-			if ~r scale 0 & r relativeto r element 1     \
-			  & r metadata 1 element 1 relativeto ez80.b \
-			  & r metadata 1 scale 1 = 1                 \
-			  & r metadata 1 scale 0 and 070o = 030o
-				db 355o, r metadata 1 scale 0 shl 3 and 070o or 100o
+	match r =, ( =bc? ), args
+		reg =: r
+			if ~reg scale 0 & reg relativeto reg element 1 \
+			  & reg metadata 1 element 1 relativeto ez80.b \
+			  & reg metadata 1 scale 1 = 1                 \
+			  & reg metadata 1 scale 0 and 070o = 030o
+				db 355o, reg metadata 1 scale 0 shl 3 and 070o or 100o
 			end if
-		restore r
-	else match reg =, ( =c? ), args
-		in? reg, (bc)
-	else match =a? =, ( port ), args
-		p =: port
-			db 333o, p
-		restore p
+		restore reg
+	else match r =, ( =c? ), args
+		in? r, (bc)
+	else match =a? =, ( p ), args
+		port =: p
+			db 333o, port
+		restore port
 	end match
 end inst
 inst in0
-	match reg =, ( port ), args
-		r =: reg
-		p =: port
-			if ~r scale 0 & r relativeto r element 1     \
-			  & r metadata 1 element 1 relativeto ez80.b \
-			  & r metadata 1 scale 1 = 1                 \
-			  & r metadata 1 scale 0 and 070o = 030o
-				db 355o, r metadata 1 scale 0 shl 3 and 070o or 000o, p
+	match r =, ( p ), args
+		reg =: r
+		port =: p
+			if ~reg scale 0 & reg relativeto reg element 1 \
+			  & reg metadata 1 element 1 relativeto ez80.b \
+			  & reg metadata 1 scale 1 = 1                 \
+			  & reg metadata 1 scale 0 and 070o = 030o
+				db 355o, reg metadata 1 scale 0 shl 3 and 070o or 000o, port
 			end if
-		restore p, r
+		restore port, reg
 	end match
 end inst
 inst out0
-	match ( port ) =, reg, args
-		p =: port
-		r =: reg
-			if ~r scale 0 & r relativeto r element 1     \
-			  & r metadata 1 element 1 relativeto ez80.b \
-			  & r metadata 1 scale 1 = 1                 \
-			  & r metadata 1 scale 0 and 070o = 030o
-				db 355o, r metadata 1 scale 0 shl 3 and 070o or 001o, p
+	match ( p ) =, r, args
+		port =: p
+		reg =: r
+			if ~reg scale 0 & reg relativeto reg element 1 \
+			  & reg metadata 1 element 1 relativeto ez80.b \
+			  & reg metadata 1 scale 1 = 1                 \
+			  & reg metadata 1 scale 0 and 070o = 030o
+				db 355o, reg metadata 1 scale 0 shl 3 and 070o or 001o, port
 			end if
-		restore r, p
+		restore reg, port
 	end match
 end inst
 
 inst im
-	match mode, args
-		m =: mode
-			if m = 0
-				db 355o, 106o
-			else if m = 1
-				db 355o, 126o
-			else if m = 2
-				db 355o, 136o
-			end if
-		restore m
-	end match
+	mode =: args
+		if mode = 0
+			db 355o, 106o
+		else if mode = 1
+			db 355o, 126o
+		else if mode = 2
+			db 355o, 136o
+		end if
+	restore mode
 end inst
 
 inst mlt
-	match reg, args
-		r =: reg
-			if ~r scale 0 & r relativeto r element 1     \
-			  & r metadata 1 element 1 relativeto ez80.w \
-			  & r metadata 1 scale 1 and 2
-				db 355o, r metadata 1 scale 0 or 114o
-			end if
-		restore r
-	end match
+	reg =: args
+		if ~reg scale 0 & reg relativeto reg element 1 \
+		  & reg metadata 1 element 1 relativeto ez80.w \
+		  & reg metadata 1 scale 1 and 2
+			db 355o, reg metadata 1 scale 0 or 114o
+		end if
+	restore reg
 end inst
 
 inst tstio
-	match imm, mode
-		i =: imm
-			db 355o, 164o, i
-		restore i
-	end match
+	imm =: args
+		db 355o, 164o, imm
+	restore imm
 end inst
 
 purge end?.inst?
