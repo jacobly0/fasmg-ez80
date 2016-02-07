@@ -232,7 +232,7 @@ inst ret
 		c =: cond
 			if ~c scale 0 & c relativeto c element 1     \
 			  & c metadata 1 element 1 relativeto ez80.b \
-			  & c metadata 1 scale 0 and 7 = 1
+			  & c metadata 1 scale 0 and 007o = 001o
 				db c metadata 1 scale 0 and 070o or 300o
 			end if
 		restore c
@@ -263,6 +263,69 @@ inst rst
 				db 307o or a
 			end if
 		restore a
+	end match
+end inst
+
+inst out
+	match ( =bc? ) =, reg, args
+		r =: reg
+			if ~r scale 0 & r relativeto r element 1     \
+			  & r metadata 1 element 1 relativeto ez80.b \
+			  & r metadata 1 scale 1 = 1                 \
+			  & r metadata 1 scale 0 and 070o = 030o
+				db 355o, r metadata 1 scale 0 shl 3 and 070o or 101o
+			end if
+		restore r
+	else match ( =c? ) =, reg, args
+		out? (bc), reg
+	else match ( port ) =, =a?, args
+		p =: port
+			db 323o, p
+		restore p
+	end match
+end inst
+inst in
+	match reg =, ( =bc? ), args
+		r =: reg
+			if ~r scale 0 & r relativeto r element 1     \
+			  & r metadata 1 element 1 relativeto ez80.b \
+			  & r metadata 1 scale 1 = 1                 \
+			  & r metadata 1 scale 0 and 070o = 030o
+				db 355o, r metadata 1 scale 0 shl 3 and 070o or 100o
+			end if
+		restore r
+	else match reg =, ( =c? ), args
+		in? reg, (bc)
+	else match =a? =, ( port ), args
+		p =: port
+			db 333o, p
+		restore p
+	end match
+end inst
+inst in0
+	match reg =, ( port ), args
+		r =: reg
+		p =: port
+			if ~r scale 0 & r relativeto r element 1     \
+			  & r metadata 1 element 1 relativeto ez80.b \
+			  & r metadata 1 scale 1 = 1                 \
+			  & r metadata 1 scale 0 and 070o = 030o
+				db 355o, r metadata 1 scale 0 shl 3 and 070o or 000o, p
+			end if
+		restore p, r
+	end match
+end inst
+inst out0
+	match ( port ) =, reg, args
+		p =: port
+		r =: reg
+			if ~r scale 0 & r relativeto r element 1     \
+			  & r metadata 1 element 1 relativeto ez80.b \
+			  & r metadata 1 scale 1 = 1                 \
+			  & r metadata 1 scale 0 and 070o = 030o
+				db 355o, r metadata 1 scale 0 shl 3 and 070o or 001o, p
+			end if
+		restore r, p
 	end match
 end inst
 
