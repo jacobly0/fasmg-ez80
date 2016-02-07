@@ -80,12 +80,12 @@ element i?   : ez80.b * 355o + 107o
 element r?   : ez80.b * 355o + 117o
 
 element ez80.w
-element bc?  : ez80.w * 005o + 000o
-element de?  : ez80.w * 005o + 020o
+element bc?  : ez80.w * 007o + 000o
+element de?  : ez80.w * 007o + 020o
 element hl?  : ez80.w * 007o + 040o
 element ix?  : ez80.w * 335o + 040o
 element iy?  : ez80.w * 375o + 040o
-element sp?  : ez80.w * 004o + 060o
+element sp?  : ez80.w * 006o + 060o
 element af?  : ez80.w * 001o + 060o
 
 macro ez80.prefix s*, is*
@@ -232,7 +232,7 @@ inst ret
 		c =: cond
 			if ~c scale 0 & c relativeto c element 1     \
 			  & c metadata 1 element 1 relativeto ez80.b \
-			  & c metadata 1 scale 0 and 007o = 001o
+			  & c metadata 1 scale 0 and 7 = 1
 				db c metadata 1 scale 0 and 070o or 300o
 			end if
 		restore c
@@ -245,7 +245,7 @@ iterate <name*, code*>, pop, <301o>, push, <305o>
 			r =: reg
 				if ~r scale 0 & r relativeto r element 1     \
 				  & r metadata 1 element 1 relativeto ez80.w \
-				  & r metadata 1 scale 1 and 001o
+				  & r metadata 1 scale 1 and 1
 					if r metadata 1 scale 1 and 370o
 						db r metadata 1 scale 1
 					end if
@@ -277,6 +277,18 @@ inst im
 				db 355o, 136o
 			end if
 		restore m
+	end match
+end inst
+
+inst mlt
+	match reg, args
+		r =: reg
+			if ~r scale 0 & r relativeto r element 1     \
+			  & r metadata 1 element 1 relativeto ez80.w \
+			  & r metadata 1 scale 1 and 2
+				db 355o, r metadata 1 scale 0 or 114o
+			end if
+		restore r
 	end match
 end inst
 
