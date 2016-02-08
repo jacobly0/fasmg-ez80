@@ -198,44 +198,27 @@ iterate <name*, code*>,       \
 	end inst
 end iterate
 
-inst inc
-	reg =: args
-		if ~reg scale 0 & reg relativeto reg element 1
-			if reg metadata 1 element 1 relativeto ez80.w \
-			 & reg metadata 1 scale 1 and 004o
-				if reg metadata 1 scale 1 and 370o
-					db reg metadata 1 scale 1
+iterate name, inc, dec
+	inst name
+		reg =: args
+			if ~reg scale 0 & reg relativeto reg element 1
+				if reg metadata 1 element 1 relativeto ez80.w \
+				 & reg metadata 1 scale 1 and 004o
+					if reg metadata 1 scale 1 and not 007o
+						db reg metadata 1 scale 1
+					end if
+					db reg metadata 1 scale 0 or (% - 1) shl 3 or 003o
+				else if reg metadata 1 element 1 relativeto ez80.b \
+				 & reg metadata 1 scale 0 and 070o = 030o
+					if reg metadata 1 scale 1 and not 007o
+						db reg metadata 1 scale 1
+					end if
+					db reg metadata 1 scale 0 shl 3 and 070o + % + 003o
 				end if
-				db reg metadata 1 scale 0 or 003o
-			else if reg metadata 1 element 1 relativeto ez80.b \
-			 & reg metadata 1 scale 0 and 070o = 030o
-				if reg metadata 1 scale 1 and 370o
-					db reg metadata 1 scale 1
-				end if
-				db reg metadata 1 scale 0 shl 3 and 070o or 004o
 			end if
-		end if
-	restore reg
-end inst
-inst dec
-	reg =: args
-		if ~reg scale 0 & reg relativeto reg element 1
-			if reg metadata 1 element 1 relativeto ez80.w \
-			 & reg metadata 1 scale 1 and 004o
-				if reg metadata 1 scale 1 and 370o
-					db reg metadata 1 scale 1
-				end if
-				db reg metadata 1 scale 0 or 013o
-			else if reg metadata 1 element 1 relativeto ez80.b \
-			 & reg metadata 1 scale 0 and 070o = 030o
-				if reg metadata 1 scale 1 and 370o
-					db reg metadata 1 scale 1
-				end if
-				db reg metadata 1 scale 0 shl 3 and 070o or 005o
-			end if
-		end if
-	restore reg
-end inst
+		restore reg
+	end inst
+end iterate
 
 inst ex
 	match arg1 =, arg2, args
@@ -249,7 +232,7 @@ inst ex
 					if ~reg scale 0 & reg relativeto reg element 1 \
 					  & reg metadata 1 element 1 relativeto ez80.w \
 					  & reg metadata 1 scale 0 = 040o
-						if reg metadata 1 scale 1 and 370o
+						if reg metadata 1 scale 1 and not 007o
 							db reg metadata 1 scale 1
 						end if
 						db 343o
@@ -284,7 +267,7 @@ iterate <name*, code*>, pop, <301o>, push, <305o>
 			if ~reg scale 0 & reg relativeto reg element 1 \
 			  & reg metadata 1 element 1 relativeto ez80.w \
 			  & reg metadata 1 scale 1 and 1
-				if reg metadata 1 scale 1 and 370o
+				if reg metadata 1 scale 1 and not 007o
 					db reg metadata 1 scale 1
 				end if
 				db reg metadata 1 scale 0 or code
