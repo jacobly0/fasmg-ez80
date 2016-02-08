@@ -131,7 +131,7 @@ macro inst name*
 	esc macro name? args&
 		local before, after
 	before:	if defined after & before = after
-			eval 'err "invalid arguments for ', `name, ': ', `args, '"'
+			eval 'err "invalid arguments in ', `name, ' ', `args, '"'
 		end if
 end macro
 macro end?.inst!
@@ -266,40 +266,47 @@ inst ex
 end inst
 
 inst ret
-	match, args
-		db 311o
-	else
-		cond =: args
+	match ( c ), args
+	else match c, args
+		cond =: c
 			if ~cond scale 0 & cond relativeto cond element 1 \
 			  & cond metadata 1 element 1 relativeto ez80.b   \
 			  & cond metadata 1 scale 0 and 007o = 001o
 				db cond metadata 1 scale 0 and 070o or 300o
 			end if
 		restore cond
+	else
+		db 311o
 	end match
 end inst
 
 iterate name, pop, push
 	inst name
-		reg =: args
-			if ~reg scale 0 & reg relativeto reg element 1 \
-			  & reg metadata 1 element 1 relativeto ez80.w \
-			  & reg metadata 1 scale 1 and 1
-				if reg metadata 1 scale 1 and not 007o
-					db reg metadata 1 scale 1
+		match ( a ), args
+		else match r, args
+			reg =: r
+				if ~reg scale 0 & reg relativeto reg element 1 \
+				  & reg metadata 1 element 1 relativeto ez80.w \
+				  & reg metadata 1 scale 1 and 1
+					if reg metadata 1 scale 1 and not 007o
+						db reg metadata 1 scale 1
+					end if
+					db reg metadata 1 scale 0 + % shl 2 + 275o
 				end if
-				db reg metadata 1 scale 0 + % shl 2 + 275o
-			end if
-		restore reg
+			restore reg
+		end match
 	end inst
 end iterate
 
 inst rst
-	adr =: args
-		if adr and 070o = adr
-			db adr or 307o
-		end if
-	restore adr
+	match ( a ), args
+	else match a, args
+		adr =: args
+			if adr and 070o = adr
+				db adr or 307o
+			end if
+		restore adr
+	end match
 end inst
 
 iterate name, srl, rlc, rrc, rl, rr, sla, sra
@@ -334,10 +341,11 @@ iterate name, srl, rlc, rrc, rl, rr, sla, sra
 end iterate
 iterate name, bit, res, set
 	inst name
-		match i =, right, args
-			idx =: i
-				if idx and 007o = idx
-					idx = % shl 6 or idx shl 3
+		match ( a ) =, right
+		else match i =, right, args
+			imm =: i
+				if imm and 007o = imm
+					imm = % shl 6 or imm shl 3
 					match ( a ), right
 						adr =: a
 							if adr relativeto adr element 1               \
@@ -346,10 +354,10 @@ iterate name, bit, res, set
 								if adr metadata 1 scale 1 and not 007o
 									if adr scale 0 >= -200o & adr scale 0 < 200o
 										db adr metadata 1 scale 1, 313o,  \
-										   adr scale 0, idx or 006o
+										   adr scale 0, imm or 006o
 									end if
 								else if ~adr scale 0
-									db 313o, idx or 006o
+									db 313o, imm or 006o
 								end if
 							end if
 						restore adr
@@ -359,18 +367,19 @@ iterate name, bit, res, set
 							  & reg metadata 1 element 1 relativeto ez80.b \
 							  & reg metadata 1 scale 0 and 070o = 030o     \
 							  & reg metadata 1 scale 1 = 1
-									db 313o, reg metadata 1 scale 0 and 007o or idx
+									db 313o, reg metadata 1 scale 0 and 007o or imm
 							end if
 						restore reg
 					end match
 				end if
-			restore idx
+			restore imm
 		end match
 	end inst
 end iterate
 
 inst out
-	match ( =bc? ) =, r, args
+	match ( p ) =, ( a ), args
+	else match ( =bc? ) =, r, args
 		reg =: r
 			if ~reg scale 0 & reg relativeto reg element 1 \
 			  & reg metadata 1 element 1 relativeto ez80.b \
@@ -388,7 +397,8 @@ inst out
 	end match
 end inst
 inst in
-	match r =, ( =bc? ), args
+	match ( a ) =, ( p ), args
+	else match r =, ( =bc? ), args
 		reg =: r
 			if ~reg scale 0 & reg relativeto reg element 1 \
 			  & reg metadata 1 element 1 relativeto ez80.b \
@@ -406,7 +416,8 @@ inst in
 	end match
 end inst
 inst in0
-	match r =, ( p ), args
+	match ( a ) =, ( p ), args
+	else match r =, ( p ), args
 		reg =: r
 		port =: p
 			if ~reg scale 0 & reg relativeto reg element 1 \
@@ -419,7 +430,8 @@ inst in0
 	end match
 end inst
 inst out0
-	match ( p ) =, r, args
+	match ( p ) =, ( a ), args
+	else match ( p ) =, r, args
 		port =: p
 		reg =: r
 			if ~reg scale 0 & reg relativeto reg element 1 \
@@ -448,25 +460,31 @@ inst tst
 end inst
 
 inst im
-	mode =: args
-		if mode = 0
-			db 355o, 106o
-		else if mode = 1
-			db 355o, 126o
-		else if mode = 2
-			db 355o, 136o
-		end if
-	restore mode
+	match ( a ), args
+	else match i, args
+		imm =: i
+			if imm = 0
+				db 355o, 106o
+			else if imm = 1
+				db 355o, 126o
+			else if imm = 2
+				db 355o, 136o
+			end if
+		restore imm
+	end match
 end inst
 
 inst mlt
-	reg =: args
-		if ~reg scale 0 & reg relativeto reg element 1 \
-		  & reg metadata 1 element 1 relativeto ez80.w \
-		  & reg metadata 1 scale 1 and 2
-			db 355o, reg metadata 1 scale 0 or 114o
-		end if
-	restore reg
+	match ( a ), args
+	else match r, args
+		reg =: r
+			if ~reg scale 0 & reg relativeto reg element 1 \
+			  & reg metadata 1 element 1 relativeto ez80.w \
+			  & reg metadata 1 scale 1 and 2
+				db 355o, reg metadata 1 scale 0 or 114o
+			end if
+		restore reg
+	end match
 end inst
 
 inst pea
@@ -484,9 +502,12 @@ inst pea
 end inst
 
 inst tstio
-	imm =: args
-		db 355o, 164o, imm
-	restore imm
+	match ( a ), args
+	else match i, args
+		imm =: i
+			db 355o, 164o, imm
+		restore imm
+	end match
 end inst
 
 purge end?.inst?
