@@ -432,6 +432,21 @@ inst out0
 	end match
 end inst
 
+inst tst
+	match =a? =, ( =hl? ), args
+		db 355o, 064o
+	else match =a? =, r, args
+		reg =: r
+			if ~reg scale 0 & reg relativeto reg element 1 \
+			  & reg metadata 1 element 1 relativeto ez80.b \
+			  & reg metadata 1 scale 1 = 1                 \
+			  & reg metadata 1 scale 0 and 070o = 030o
+				db 355o, reg metadata 1 scale 0 shl 3 and 070o or 004o
+			end if
+		restore reg
+	end match
+end inst
+
 inst im
 	mode =: args
 		if mode = 0
@@ -452,6 +467,20 @@ inst mlt
 			db 355o, reg metadata 1 scale 0 or 114o
 		end if
 	restore reg
+end inst
+
+inst pea
+	match ( a ), args
+	else match r, args
+		reg =: r
+			if reg relativeto reg element 1               \
+			 & reg metadata 1 element 1 relativeto ez80.w \
+			 & reg metadata 1 scale 1 and not 007o        \
+			 & reg scale 0 >= -200o & reg scale 0 < 200o
+				db 355o, reg metadata 1 scale 1 shr 5 and 1 + 145o, reg scale 0
+			end if
+		restore reg
+	end match
 end inst
 
 inst tstio
