@@ -216,7 +216,7 @@ iterate name, inc, dec
 					end if
 				end if
 			restore adr
-		else r, args
+		else match r, args
 			reg =: r
 				if ~reg scale 0 & reg relativeto reg element 1
 					if reg metadata 1 element 1 relativeto ez80.w \
