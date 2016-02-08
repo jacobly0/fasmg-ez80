@@ -268,13 +268,13 @@ end inst
 inst ret
 	match ( c ), args
 	else match c, args
-		cond =: c
-			if ~cond scale 0 & cond relativeto cond element 1 \
-			  & cond metadata 1 element 1 relativeto ez80.b   \
-			  & cond metadata 1 scale 0 and 007o = 001o
-				db cond metadata 1 scale 0 and 070o or 300o
+		cnd =: c
+			if ~cnd scale 0 & cnd relativeto cnd element 1 \
+			  & cnd metadata 1 element 1 relativeto ez80.b   \
+			  & cnd metadata 1 scale 0 and 007o = 001o
+				db cnd metadata 1 scale 0 and 070o or 300o
 			end if
-		restore cond
+		restore cnd
 	else
 		db 311o
 	end match
@@ -297,6 +297,60 @@ iterate name, pop, push
 		end match
 	end inst
 end iterate
+
+inst jp
+	match ( c ) =, a, args
+	else match c =, ( a ), args
+	else match c =, a, args
+		cnd =: c
+		adr =: a
+			if ~cnd scale 0 & cnd relativeto cnd element 1 \
+			  & cnd metadata 1 element 1 relativeto ez80.b   \
+			  & cnd metadata 1 scale 0 and 007o = 001o
+				db cnd metadata 1 scale 0 and 070o or 302o
+				dl adr
+			end if
+		restore adr, cnd
+	else match ( a ), args
+		adr =: a
+			if ~adr scale 0 & adr relativeto adr element 1 \
+			  & adr metadata 1 element 1 relativeto ez80.w \
+			  & adr metadata 1 scale 0 = 040o
+				if adr metadata 1 scale 1 and not 007o
+					db adr metadata 1 scale 1
+				end if
+				db 351o
+			end if
+		restore adr
+	else match a, args
+		adr =: a
+			db 303o
+			dl adr
+		restore adr
+	end match
+end inst
+
+inst call
+	match ( c ) =, a, args
+	else match c =, ( a ), args
+	else match c =, a, args
+		cnd =: c
+		adr =: a
+			if ~cnd scale 0 & cnd relativeto cnd element 1 \
+			  & cnd metadata 1 element 1 relativeto ez80.b   \
+			  & cnd metadata 1 scale 0 and 007o = 001o
+				db cnd metadata 1 scale 0 and 070o or 304o
+				dl adr
+			end if
+		restore adr, cnd
+	else match ( a ), args
+	else match a, args
+		adr =: a
+			db 315o
+			dl adr
+		restore adr
+	end match
+end inst
 
 inst rst
 	match ( a ), args
