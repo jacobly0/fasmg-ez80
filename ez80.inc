@@ -194,7 +194,9 @@ iterate <name*, code*>,       \
          otd,   <355o, 273o>, \
          otd2r, <355o, 274o>
 	inst name
-		db code
+		match, args
+			db code
+		end match
 	end inst
 end iterate
 
@@ -221,14 +223,14 @@ iterate name, inc, dec
 end iterate
 
 inst ex
-	match arg1 =, arg2, args
-		iterate <a1, a2>, arg1, arg2, arg2, arg1
-			match =af?, a1
-				match =af'?, a2
+	match left =, right, args
+		iterate <arg1, arg2>, left, right, right, left
+			match =af?, arg1
+				match =af'?, arg2
 					db 010o
 				end match
-			else match ( =sp? ), a1
-				reg =: a2
+			else match ( =sp? ), arg1
+				reg =: arg2
 					if ~reg scale 0 & reg relativeto reg element 1 \
 					  & reg metadata 1 element 1 relativeto ez80.w \
 					  & reg metadata 1 scale 0 = 040o
@@ -238,8 +240,8 @@ inst ex
 						db 343o
 					end if
 				restore reg
-			else match =de?, a1
-				match =hl?, a2
+			else match =de?, arg1
+				match =hl?, arg2
 					db 353o
 				end match
 			end match
@@ -261,7 +263,7 @@ inst ret
 	end match
 end inst
 
-iterate <name*, code*>, pop, <301o>, push, <305o>
+iterate name, pop, push
 	inst name
 		reg =: args
 			if ~reg scale 0 & reg relativeto reg element 1 \
@@ -270,7 +272,7 @@ iterate <name*, code*>, pop, <301o>, push, <305o>
 				if reg metadata 1 scale 1 and not 007o
 					db reg metadata 1 scale 1
 				end if
-				db reg metadata 1 scale 0 or code
+				db reg metadata 1 scale 0 + % shl 2 + 275o
 			end if
 		restore reg
 	end inst
