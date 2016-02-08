@@ -202,23 +202,39 @@ end iterate
 
 iterate name, inc, dec
 	inst name
-		reg =: args
-			if ~reg scale 0 & reg relativeto reg element 1
-				if reg metadata 1 element 1 relativeto ez80.w \
-				 & reg metadata 1 scale 1 and 004o
-					if reg metadata 1 scale 1 and not 007o
-						db reg metadata 1 scale 1
+		match ( a ), args
+			adr =: a
+				if adr relativeto adr element 1               \
+				 & adr metadata 1 element 1 relativeto ez80.w \
+				 & adr metadata 1 scale 0 = 040o
+					if adr metadata 1 scale 1 and not 007o
+						if adr scale 0 >= -200o & adr scale 0 < 200o
+							db adr metadata 1 scale 1, % + 063o, adr scale 0
+						end if
+					else if ~adr scale 0
+						db % + 063o
 					end if
-					db reg metadata 1 scale 0 or (% - 1) shl 3 or 003o
-				else if reg metadata 1 element 1 relativeto ez80.b \
-				 & reg metadata 1 scale 0 and 070o = 030o
-					if reg metadata 1 scale 1 and not 007o
-						db reg metadata 1 scale 1
-					end if
-					db reg metadata 1 scale 0 shl 3 and 070o + % + 003o
 				end if
-			end if
-		restore reg
+			restore adr
+		else r, args
+			reg =: r
+				if ~reg scale 0 & reg relativeto reg element 1
+					if reg metadata 1 element 1 relativeto ez80.w \
+					 & reg metadata 1 scale 1 and 004o
+						if reg metadata 1 scale 1 and not 007o
+							db reg metadata 1 scale 1
+						end if
+						db reg metadata 1 scale 0 or (% - 1) shl 3 or 003o
+					else if reg metadata 1 element 1 relativeto ez80.b \
+					 & reg metadata 1 scale 0 and 070o = 030o
+						if reg metadata 1 scale 1 and not 007o
+							db reg metadata 1 scale 1
+						end if
+						db reg metadata 1 scale 0 shl 3 and 070o + % + 003o
+					end if
+				end if
+			restore reg
+		end match
 	end inst
 end iterate
 
@@ -279,12 +295,42 @@ iterate name, pop, push
 end iterate
 
 inst rst
-	addr =: args
-		if addr and 070o = addr
-			db addr or 307o
+	adr =: args
+		if adr and 070o = adr
+			db adr or 307o
 		end if
-	restore addr
+	restore adr
 end inst
+
+iterate name, srl, rlc, rrc, rl, rr, sla, sra
+	inst name
+		match ( a ), args
+			adr =: a
+				if adr relativeto adr element 1               \
+				 & adr metadata 1 element 1 relativeto ez80.w \
+				 & adr metadata 1 scale 0 = 040o
+					if adr metadata 1 scale 1 and not 007o
+						if adr scale 0 >= -200o & adr scale 0 < 200o
+							db adr metadata 1 scale 1, 313o, adr scale 0, \
+							   ((% - 2) and 007o) shl 3 or 006o
+						end if
+					else if ~adr scale 0
+						db 313o, ((% - 2) and 007o) shl 3 or 006o
+					end if
+				end if
+			restore adr
+		else match r, args
+			reg =: r
+				if ~reg scale 0 & reg relativeto reg element 1 \
+				  & reg metadata 1 element 1 relativeto ez80.b \
+				  & reg metadata 1 scale 0 and 070o = 030o     \
+				  & reg metadata 1 scale 1 = 1
+					db 313o, reg metadata 1 scale 0 and 007o or ((% - 2) and 007o) shl 3
+				end if
+			restore reg
+		end match
+	end inst
+end iterate
 
 inst out
 	match ( =bc? ) =, r, args
