@@ -444,6 +444,32 @@ inst out0
 	end match
 end inst
 
+inst lea
+	match ( l ) =, r, args
+	else match l =, ( r ), args
+	else match l =, r, args
+		left =: l
+		right =: r
+			if ~left scale 0 & left relativeto left element 1 \
+			               & right relativeto right element 1 \
+			  & left metadata 1 element 1 relativeto ez80.w   \
+			  & right metadata 1 element 1 relativeto ez80.w  \
+			  & left metadata 1 scale 0 <> 060o               \
+			  & right metadata 1 scale 1 and not 007o         \
+			  & right scale 0 >= -200o & right scale 0 < 200o
+				if left metadata 1 scale 1 and 002o
+					db 355o, right metadata 1 scale 1 shr 5 and 1 \
+					   or left metadata 1 scale 0 or 002o, right scale 0
+				else if left relativeto right
+					db 355o, left metadata 1 scale 1 shr 5 and 1 or 062o, right scale 0
+				else
+					db 355o, left metadata 1 scale 1 shr 5 and 1 or 124o, right scale 0
+				end if
+			end if
+		restore right, left
+	end match
+end inst
+
 inst tst
 	match =a? =, ( =hl? ), args
 		db 355o, 064o
