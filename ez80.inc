@@ -325,9 +325,46 @@ iterate name, srl, rlc, rrc, rl, rr, sla, sra
 				  & reg metadata 1 element 1 relativeto ez80.b \
 				  & reg metadata 1 scale 0 and 070o = 030o     \
 				  & reg metadata 1 scale 1 = 1
-					db 313o, reg metadata 1 scale 0 and 007o or ((% - 2) and 007o) shl 3
+					db 313o, reg metadata 1 scale 0 and 007o   \
+					      or ((% - 2) and 007o) shl 3
 				end if
 			restore reg
+		end match
+	end inst
+end iterate
+iterate name, bit, res, set
+	inst name
+		match i =, right, args
+			idx =: i
+				if idx and 007o = idx
+					idx = % shl 6 or idx shl 3
+					match ( a ), right
+						adr =: a
+							if adr relativeto adr element 1               \
+							 & adr metadata 1 element 1 relativeto ez80.w \
+							 & adr metadata 1 scale 0 = 040o
+								if adr metadata 1 scale 1 and not 007o
+									if adr scale 0 >= -200o & adr scale 0 < 200o
+										db adr metadata 1 scale 1, 313o,  \
+										   adr scale 0, idx or 006o
+									end if
+								else if ~adr scale 0
+									db 313o, idx or 006o
+								end if
+							end if
+						restore adr
+					else match r, right
+						reg =: r
+							if ~reg scale 0 & reg relativeto reg element 1 \
+							  & reg metadata 1 element 1 relativeto ez80.b \
+							  & reg metadata 1 scale 0 and 070o = 030o     \
+							  & reg metadata 1 scale 1 = 1
+									db 313o, reg metadata 1 scale 0 and 007o or idx
+							end if
+						restore reg
+					end match
+				end if
+			restore idx
 		end match
 	end inst
 end iterate
