@@ -265,12 +265,81 @@ inst ex
 	end match
 end inst
 
+inst djnz
+	match ( a ), args
+	else match a, args
+		adr =: a
+		off =: adr - $ - 2
+			if off >= -200o & off < 200o
+				db 020o, off
+			end if
+		restore off, adr
+	end match
+end inst
+inst jr
+	match ( c ) =, a, args
+	else match c =, ( a ), args
+	else match c =, a, args
+		cnd =: c
+		adr =: a
+		off =: adr - $ - 2
+			if ~cnd scale 0 & cnd relativeto cnd element 1 \
+			  & cnd metadata 1 element 1 relativeto ez80.b \
+			  & cnd metadata 1 scale 0 and 007o = 001o     \
+			  & cnd metadata 1 scale 0 < 040o              \
+			  & off >= -200o & off < 200o
+				db cnd metadata 1 scale 0 and 030o or 040o, off
+			end if
+		restore off, adr, cnd
+	else match ( a ), args
+	else match a, args
+		adr =: a
+		off = adr - $ - 2
+			if off >= -200o & off < 200o
+				db 030o, off
+			end if
+		restore off, adr
+	end match
+end inst
+inst jq
+	match ( c ) =, a, args
+	else match c =, ( a ), args
+	else match c =, a, args
+		cnd =: c
+		adr =: a
+		off =: adr - $ - 2
+			if ~cnd scale 0 & cnd relativeto cnd element 1 \
+			  & cnd metadata 1 element 1 relativeto ez80.b \
+			  & cnd metadata 1 scale 0 and 007o = 001o     \
+			  & cnd metadata 1 scale 0 < 040o
+				if off >= -200o & off < 200o
+					db cnd metadata 1 scale 0 and 030o or 040o, off
+				else
+					db cnd metadata 1 scale 0 and 030o or 302o
+					dl adr
+				end if
+			end if
+		restore off, adr, cnd
+	else match ( a ), args
+	else match a, args
+		adr =: a
+		off =: adr - $ - 2
+			if off >= -200o & off < 200o
+				db 030o, off
+			else
+				db 303o
+				dl adr
+			end if
+		restore off, adr
+	end match
+end inst
+
 inst ret
 	match ( c ), args
 	else match c, args
 		cnd =: c
 			if ~cnd scale 0 & cnd relativeto cnd element 1 \
-			  & cnd metadata 1 element 1 relativeto ez80.b   \
+			  & cnd metadata 1 element 1 relativeto ez80.b \
 			  & cnd metadata 1 scale 0 and 007o = 001o
 				db cnd metadata 1 scale 0 and 070o or 300o
 			end if
@@ -305,7 +374,7 @@ inst jp
 		cnd =: c
 		adr =: a
 			if ~cnd scale 0 & cnd relativeto cnd element 1 \
-			  & cnd metadata 1 element 1 relativeto ez80.b   \
+			  & cnd metadata 1 element 1 relativeto ez80.b \
 			  & cnd metadata 1 scale 0 and 007o = 001o
 				db cnd metadata 1 scale 0 and 070o or 302o
 				dl adr
@@ -329,7 +398,6 @@ inst jp
 		restore adr
 	end match
 end inst
-
 inst call
 	match ( c ) =, a, args
 	else match c =, ( a ), args
@@ -337,7 +405,7 @@ inst call
 		cnd =: c
 		adr =: a
 			if ~cnd scale 0 & cnd relativeto cnd element 1 \
-			  & cnd metadata 1 element 1 relativeto ez80.b   \
+			  & cnd metadata 1 element 1 relativeto ez80.b \
 			  & cnd metadata 1 scale 0 and 007o = 001o
 				db cnd metadata 1 scale 0 and 070o or 304o
 				dl adr
@@ -351,7 +419,6 @@ inst call
 		restore adr
 	end match
 end inst
-
 inst rst
 	match ( a ), args
 	else match a, args
