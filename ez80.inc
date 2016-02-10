@@ -95,7 +95,6 @@ macro ez80.prefix s*, is*
 	db ez80.lil or ez80.lil shl 3 or 100o
 end macro
 macro inst name*
-	define name?
 	macro name?.s? args&
 		ez80.prefix 0, ez80.il
 		name? args
@@ -334,6 +333,84 @@ inst jq
 	end match
 end inst
 
+iterate name, adc, sbc
+	inst name
+		match =a? =, ( a ), args
+			adr =: a
+				if adr relativeto adr element 1               \
+				 & adr metadata 1 element 1 relativeto ez80.w \
+				 & adr metadata 1 scale 0 = 040o
+					if adr metadata 1 scale 1 and not 007o
+						if adr scale 0 >= -200o & adr scale 0 < 200o
+							db adr metadata 1 scale 1, % shl 4 + 176o, adr scale 0
+						end if
+					else if ~adr scale 0
+						db % shl 4 + 176o
+					end if
+				end if
+			restore adr
+		else match =a? =, r, args
+			reg =: r
+				if elementsof reg
+					if ~reg scale 0 & reg relativeto reg element 1 \
+					  & reg metadata 1 element 1 relativeto ez80.b \
+					  & reg metadata 1 scale 0 and 070o = 030o
+						if reg metadata 1 scale 1 and not 007o
+							db reg metadata 1 scale 1
+						end if
+						db reg metadata 1 scale 0 and 007o or % shl 4 + 170o
+					end if
+				else
+					db % shl 4 + 276o, reg
+				end if
+			restore reg
+		else match =hl? =, ( a ), args
+		else match =hl? =, r, args
+			reg =: r
+				if ~reg scale 0 & reg relativeto reg element 1 \
+				  & reg metadata 1 element 1 relativeto ez80.w \
+				  & reg metadata 1 scale 1 and 002o
+					db 355o, reg metadata 1 scale 0 + 122o - % shl 3
+				end if
+			restore reg
+		end match
+	end inst
+end iterate
+iterate <name*, code*>, sub, 020o, and, 040o, xor, 050o, or, 060o, cp, 070o
+	inst name
+		match =a? =, ( a ), args
+			adr =: a
+				if adr relativeto adr element 1               \
+				 & adr metadata 1 element 1 relativeto ez80.w \
+				 & adr metadata 1 scale 0 = 040o
+					if adr metadata 1 scale 1 and not 007o
+						if adr scale 0 >= -200o & adr scale 0 < 200o
+							db adr metadata 1 scale 1, code or 206o, adr scale 0
+						end if
+					else if ~adr scale 0
+						db code or 206o
+					end if
+				end if
+			restore adr
+		else match =a? =, r, args
+			reg =: r
+				if elementsof reg
+					if ~reg scale 0 & reg relativeto reg element 1 \
+					  & reg metadata 1 element 1 relativeto ez80.b \
+					  & reg metadata 1 scale 0 and 070o = 030o
+						if reg metadata 1 scale 1 and not 007o
+							db reg metadata 1 scale 1
+						end if
+						db reg metadata 1 scale 0 and 007o or code or 200o
+					end if
+				else
+					db code or 306o, reg
+				end if
+			restore reg
+		end match
+	end inst
+end iterate
+
 inst ret
 	match ( c ), args
 	else match c, args
@@ -348,7 +425,6 @@ inst ret
 		db 311o
 	end match
 end inst
-
 iterate name, pop, push
 	inst name
 		match ( a ), args
@@ -366,7 +442,6 @@ iterate name, pop, push
 		end match
 	end inst
 end iterate
-
 inst jp
 	match ( c ) =, a, args
 	else match c =, ( a ), args
