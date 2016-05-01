@@ -593,7 +593,11 @@ inst out
 	end match
 end inst
 inst in
-	match ( a ) =, ( p ), args
+	match =f? =, ( =bc? ), args
+		port =: p
+			db 355o, 160o
+		restore port
+	else match ( a ) =, ( p ), args
 	else match r =, ( =bc? ), args
 		reg =: r
 			if ~reg scale 0 & reg relativeto reg element 1 \
@@ -609,10 +613,16 @@ inst in
 		port =: p
 			db 333o, port
 		restore port
+	else match ( p ), args
+		in? f, (p)
 	end match
 end inst
 inst in0
-	match ( a ) =, ( p ), args
+	match =f? =, ( p ), args
+		port =: p
+			db 355o, 060o, p
+		restore port
+	else match ( a ) =, ( p ), args
 	else match r =, ( p ), args
 		reg =: r
 		port =: p
@@ -623,6 +633,8 @@ inst in0
 				db 355o, reg metadata 1 scale 0 shl 3 and 070o or 000o, port
 			end if
 		restore port, reg
+	else match ( p ), args
+		in0? f, (p)
 	end match
 end inst
 inst out0
