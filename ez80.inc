@@ -592,8 +592,8 @@ inst add
 				db reg metadata 1 scale 0 + 011o
 			end if
 		restore reg, dst
-	else match r, args
-		add? a, r
+	else
+		add? a, args
 	end match
 end inst
 iterate name, adc, sbc
@@ -637,8 +637,8 @@ iterate name, adc, sbc
 				end if
 			restore reg
 		else match a =, r, args
-		else match r, args
-			name? a, r
+		else
+			name? a, args
 		end match
 	end inst
 end iterate
@@ -674,8 +674,8 @@ iterate <name*, code*>, sub, 020o, and, 040o, xor, 050o, or, 060o, cp, 070o
 				end if
 			restore reg
 		else match a =, r, args
-		else match r, args
-			name? a, r
+		else
+			name? a, args
 		end match
 	end inst
 end iterate
@@ -952,13 +952,20 @@ inst tst
 		db 355o, 064o
 	else match =a? =, r, args
 		reg =: r
-			if ~reg scale 0 & reg relativeto reg element 1 \
-			  & reg metadata 1 element 1 relativeto ez80.b \
-			  & reg metadata 1 scale 1 = 1                 \
-			  & reg metadata 1 scale 0 and 070o = 030o
-				db 355o, reg metadata 1 scale 0 shl 3 and 070o + 004o
+			if elementsof reg
+				if ~reg scale 0 & reg relativeto reg element 1 \
+				  & reg metadata 1 element 1 relativeto ez80.b \
+				  & reg metadata 1 scale 1 = 1                 \
+				  & reg metadata 1 scale 0 and 070o = 030o
+					db 355o, reg metadata 1 scale 0 shl 3 and 070o + 004o
+				end if
+			else
+				db 355o, 144o, reg
 			end if
 		restore reg
+	else match d =, s, args
+	else
+		tst? a, args
 	end match
 end inst
 
