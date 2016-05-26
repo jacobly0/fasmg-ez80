@@ -200,11 +200,15 @@ iterate <name*, code*>,       \
          inir,  <355o, 262o>, \
          otir,  <355o, 263o>, \
          oti2r, <355o, 264o>, \
-         ldd,   <355o, 270o>, \
-         cpd,   <355o, 271o>, \
-         ind,   <355o, 272o>, \
-         otd,   <355o, 273o>, \
-         otd2r, <355o, 274o>
+         lddr,  <355o, 270o>, \
+         cpdr,  <355o, 271o>, \
+         indr,  <355o, 272o>, \
+         otdr,  <355o, 273o>, \
+         otd2r, <355o, 274o>, \
+         inirx, <355o, 302o>, \
+         otirx, <355o, 303o>, \
+         indrx, <355o, 312o>, \
+         otdrx, <355o, 313o>
 	inst name
 		match, args
 			db code
