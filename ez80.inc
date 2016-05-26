@@ -354,41 +354,44 @@ inst ld
 			if elementsof src
 				if ~dst scale 0 & dst relativeto dst element 1 \
 				  & src relativeto src element 1               \
-				  & src metadata 1 element 1 relativeto ez80.w \
-				  & src metadata 1 scale 0 = 040o
-					if dst metadata 1 element 1 relativeto ez80.b \
-					 & dst metadata 1 scale 0 and 070o = 030o     \
-					 & dst metadata 1 scale 1 = 1
-						if src metadata 1 scale 1 and not 007o
-							if -200o <= src scale 0 & src scale 0 < 200o
-								db src metadata 1 scale 1,                       \
-								   dst metadata 1 scale 0 shl 3 and 070o + 106o, \
-								   src scale 0
-							end if
-						else
-							db dst metadata 1 scale 0 shl 3 and 070o + 106o
-						end if
-					else if dst metadata 1 element 1 relativeto ez80.w \
-					      & dst metadata 1 scale 1 and 005o = 005o
-						code =: dst metadata 1 scale 0 + 007o
-							if dst metadata 1 scale 1 and not 007o
-								code = code + 020o
-								if src metadata 1 scale 1 and 040o \
-								 = dst metadata 1 scale 1 and 040o
-									code = code - 6
-								end if
-							end if
+				  & src metadata 1 element 1 relativeto ez80.w
+					if src metadata 1 scale 0 = 040o
+						if dst metadata 1 element 1 relativeto ez80.b \
+						 & dst metadata 1 scale 0 and 070o = 030o     \
+						 & dst metadata 1 scale 1 = 1
 							if src metadata 1 scale 1 and not 007o
 								if -200o <= src scale 0 & src scale 0 < 200o
-									db src metadata 1 scale 1, code, src scale 0
+									db src metadata 1 scale 1,                       \
+									   dst metadata 1 scale 0 shl 3 and 070o + 106o, \
+									   src scale 0
 								end if
-							else if ~src scale 0
-								db 355o, code
+							else
+								db dst metadata 1 scale 0 shl 3 and 070o + 106o
 							end if
-						restore op
+						else if dst metadata 1 element 1 relativeto ez80.w \
+						      & dst metadata 1 scale 1 and 005o = 005o
+							code =: dst metadata 1 scale 0 + 007o
+								if dst metadata 1 scale 1 and not 007o
+									code = code + 020o
+									if src metadata 1 scale 1 and 040o \
+									 = dst metadata 1 scale 1 and 040o
+										code = code - 6
+									end if
+								end if
+								if src metadata 1 scale 1 and not 007o
+									if -200o <= src scale 0 & src scale 0 < 200o
+										db src metadata 1 scale 1, code, src scale 0
+									end if
+								else if ~src scale 0
+									db 355o, code
+								end if
+							restore op
+						end if
+					else if dst eq A? & src metadata 1 scale 1 and 002o
+						db src metadata 1 scale 0 + 012o
 					end if
 				end if
-			else match =a?, d
+			else if dst eq A?
 				db 072o
 				ez80.word src
 			else if ~dst scale 0 & dst relativeto dst element 1 \
@@ -409,43 +412,58 @@ inst ld
 		dst =: d
 		src =: s
 			if elementsof dst
-				if ~src scale 0 & src relativeto src element 1 \
-				  & dst relativeto dst element 1               \
-				  & dst metadata 1 element 1 relativeto ez80.w \
-				  & dst metadata 1 scale 0 = 040o
-					if src metadata 1 element 1 relativeto ez80.b \
-					 & src metadata 1 scale 0 and 070o = 030o     \
-					 & src metadata 1 scale 1 = 1
-						if dst metadata 1 scale 1 and not 007o
-							if -200o <= dst scale 0 & dst scale 0 < 200o
-								db dst metadata 1 scale 1,                 \
-								   src metadata 1 scale 0 and 007o + 160o, \
-								   dst scale 0
+				if elementsof src
+					if ~src scale 0 & src relativeto src element 1 \
+					  & dst relativeto dst element 1               \
+					  & dst metadata 1 element 1 relativeto ez80.w
+						if dst metadata 1 scale 0 = 040o
+							if src metadata 1 element 1 relativeto ez80.b \
+							 & src metadata 1 scale 0 and 070o = 030o     \
+							 & src metadata 1 scale 1 = 1
+								if dst metadata 1 scale 1 and not 007o
+									if -200o <= dst scale 0 & dst scale 0 < 200o
+										db dst metadata 1 scale 1,                 \
+										   src metadata 1 scale 0 and 007o + 160o, \
+										   dst scale 0
+									end if
+								else
+									db src metadata 1 scale 0 and 007o + 160o
+								end if
+							else if src metadata 1 element 1 relativeto ez80.w \
+							      & src metadata 1 scale 1 and 005o = 005o
+								code =: src metadata 1 scale 0 + 017o
+									if src metadata 1 scale 1 and not 017o
+										code = code + 020o
+										if dst metadata 1 scale 1 and 040o \
+										 = src metadata 1 scale 1 and 040o
+											code = code - 1
+										end if
+									end if
+									if dst metadata 1 scale 1 and not 007o
+										if -200o <= dst scale 0 & dst scale 0 < 200o
+											db dst metadata 1 scale 1, code, dst scale 0
+										end if
+									else if ~dst scale 0
+										db 355o, code
+									end if
+								restore op
 							end if
-						else
-							db src metadata 1 scale 0 and 007o + 160o
+						else if src eq A? & dst metadata 1 scale 1 and 002o
+							db dst metadata 1 scale 0 + 002o
 						end if
-					else if src metadata 1 element 1 relativeto ez80.w \
-					      & src metadata 1 scale 1 and 005o = 005o
-						code =: src metadata 1 scale 0 + 017o
-							if src metadata 1 scale 1 and not 017o
-								code = code + 020o
-								if dst metadata 1 scale 1 and 040o \
-								 = src metadata 1 scale 1 and 040o
-									code = code - 1
-								end if
-							end if
-							if dst metadata 1 scale 1 and not 007o
-								if -200o <= dst scale 0 & dst scale 0 < 200o
-									db dst metadata 1 scale 1, code, dst scale 0
-								end if
-							else if ~dst scale 0
-								db 355o, code
-							end if
-						restore op
+					end if
+				else if dst relativeto dst element 1               \
+				      & dst metadata 1 element 1 relativeto ez80.w \
+					  & dst metadata 1 scale 0 = 040o
+					if dst metadata 1 scale 1 and not 007o
+						if -200o <= dst scale 0 & dst scale 0 < 200o
+							db dst metadata 1 scale 1, 066o, dst scale 0, src
+						end if
+					else
+						db 066o, src
 					end if
 				end if
-			else match =a?, s
+			else if src eq A?
 				db 062o
 				ez80.word dst
 			else if ~src scale 0 & src relativeto src element 1 \
