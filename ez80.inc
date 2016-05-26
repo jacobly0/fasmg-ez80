@@ -100,8 +100,8 @@ element af?  : ez80.w * 001o + 060o
 macro ez80.prefix s*, is*
 	ez80.l = s
 	ez80.il = is
-	ez80.lil = ez80.l or ez80.il shl 1
-	db ez80.lil or ez80.lil shl 3 or 100o
+	ez80.lil = ez80.l + ez80.il shl 1
+	db ez80.lil + ez80.lil shl 3 + 100o
 end macro
 macro inst name*
 	define name? name
@@ -219,7 +219,7 @@ iterate name, inc, dec
 				 & adr metadata 1 element 1 relativeto ez80.w \
 				 & adr metadata 1 scale 0 = 040o
 					if adr metadata 1 scale 1 and not 007o
-						if adr scale 0 >= -200o & adr scale 0 < 200o
+						if -200o <= adr scale 0 & adr scale 0 < 200o
 							db adr metadata 1 scale 1, % + 063o, adr scale 0
 						end if
 					else if ~adr scale 0
@@ -235,7 +235,7 @@ iterate name, inc, dec
 						if reg metadata 1 scale 1 and not 007o
 							db reg metadata 1 scale 1
 						end if
-						db reg metadata 1 scale 0 or (% - 1) shl 3 or 003o
+						db reg metadata 1 scale 0 + (% - 1) shl 3 + 003o
 					else if reg metadata 1 element 1 relativeto ez80.b \
 					 & reg metadata 1 scale 0 and 070o = 030o
 						if reg metadata 1 scale 1 and not 007o
@@ -281,7 +281,7 @@ inst djnz
 	else match a, args
 		adr =: a
 		off =: adr - $ - 2
-			if off >= -200o & off < 200o
+			if -200o <= off & off < 200o
 				db 020o, off
 			end if
 		restore off, adr
@@ -298,15 +298,15 @@ inst jr
 			  & cnd metadata 1 element 1 relativeto ez80.b \
 			  & cnd metadata 1 scale 0 and 007o = 001o     \
 			  & cnd metadata 1 scale 0 < 040o              \
-			  & off >= -200o & off < 200o
-				db cnd metadata 1 scale 0 and 030o or 040o, off
+			  & -200o <= off & off < 200o
+				db cnd metadata 1 scale 0 and 030o + 040o, off
 			end if
 		restore off, adr, cnd
 	else match ( a ), args
 	else match a, args
 		adr =: a
 		off = adr - $ - 2
-			if off >= -200o & off < 200o
+			if -200o <= off & off < 200o
 				db 030o, off
 			end if
 		restore off, adr
@@ -323,10 +323,10 @@ inst jq
 			  & cnd metadata 1 element 1 relativeto ez80.b \
 			  & cnd metadata 1 scale 0 and 007o = 001o     \
 			  & cnd metadata 1 scale 0 < 040o
-				if off >= -200o & off < 200o
-					db cnd metadata 1 scale 0 and 030o or 040o, off
+				if -200o <= off & off < 200o
+					db cnd metadata 1 scale 0 and 030o + 040o, off
 				else
-					db cnd metadata 1 scale 0 and 030o or 302o
+					db cnd metadata 1 scale 0 and 030o + 302o
 					ez80.word adr
 				end if
 			end if
@@ -335,7 +335,7 @@ inst jq
 	else match a, args
 		adr =: a
 		off =: adr - $ - 2
-			if off >= -200o & off < 200o
+			if -200o <= off & off < 200o
 				db 030o, off
 			else
 				db 303o
@@ -352,7 +352,7 @@ inst add
 			 & adr metadata 1 element 1 relativeto ez80.w \
 			 & adr metadata 1 scale 0 = 040o
 				if adr metadata 1 scale 1 and not 007o
-					if adr scale 0 >= -200o & adr scale 0 < 200o
+					if -200o <= adr scale 0 & adr scale 0 < 200o
 						db adr metadata 1 scale 1, 206o, adr scale 0
 					end if
 				else if ~adr scale 0
@@ -369,7 +369,7 @@ inst add
 					if reg metadata 1 scale 1 and not 007o
 						db reg metadata 1 scale 1
 					end if
-					db reg metadata 1 scale 0 and 007o or 200o
+					db reg metadata 1 scale 0 and 007o + 200o
 				end if
 			else
 				db 306o, reg
@@ -390,7 +390,7 @@ inst add
 				if dst metadata 1 scale 1 and not 007o
 					db dst metadata 1 scale 1
 				end if
-				db reg metadata 1 scale 0 or 011o
+				db reg metadata 1 scale 0 + 011o
 			end if
 		restore reg, dst
 	else match r, args
@@ -405,7 +405,7 @@ iterate name, adc, sbc
 				 & adr metadata 1 element 1 relativeto ez80.w \
 				 & adr metadata 1 scale 0 = 040o
 					if adr metadata 1 scale 1 and not 007o
-						if adr scale 0 >= -200o & adr scale 0 < 200o
+						if -200o <= adr scale 0 & adr scale 0 < 200o
 							db adr metadata 1 scale 1, % shl 4 + 176o, adr scale 0
 						end if
 					else if ~adr scale 0
@@ -422,7 +422,7 @@ iterate name, adc, sbc
 						if reg metadata 1 scale 1 and not 007o
 							db reg metadata 1 scale 1
 						end if
-						db reg metadata 1 scale 0 and 007o or % shl 4 + 170o
+						db reg metadata 1 scale 0 and 007o + % shl 4 + 170o
 					end if
 				else
 					db % shl 4 + 276o, reg
@@ -451,11 +451,11 @@ iterate <name*, code*>, sub, 020o, and, 040o, xor, 050o, or, 060o, cp, 070o
 				 & adr metadata 1 element 1 relativeto ez80.w \
 				 & adr metadata 1 scale 0 = 040o
 					if adr metadata 1 scale 1 and not 007o
-						if adr scale 0 >= -200o & adr scale 0 < 200o
-							db adr metadata 1 scale 1, code or 206o, adr scale 0
+						if -200o <= adr scale 0 & adr scale 0 < 200o
+							db adr metadata 1 scale 1, code + 206o, adr scale 0
 						end if
 					else if ~adr scale 0
-						db code or 206o
+						db code + 206o
 					end if
 				end if
 			restore adr
@@ -468,10 +468,10 @@ iterate <name*, code*>, sub, 020o, and, 040o, xor, 050o, or, 060o, cp, 070o
 						if reg metadata 1 scale 1 and not 007o
 							db reg metadata 1 scale 1
 						end if
-						db reg metadata 1 scale 0 and 007o or code or 200o
+						db reg metadata 1 scale 0 and 007o + code + 200o
 					end if
 				else
-					db code or 306o, reg
+					db code + 306o, reg
 				end if
 			restore reg
 		else match a =, r, args
@@ -488,7 +488,7 @@ inst ret
 			if ~cnd scale 0 & cnd relativeto cnd element 1 \
 			  & cnd metadata 1 element 1 relativeto ez80.b \
 			  & cnd metadata 1 scale 0 and 007o = 001o
-				db cnd metadata 1 scale 0 and 070o or 300o
+				db cnd metadata 1 scale 0 and 070o + 300o
 			end if
 		restore cnd
 	else
@@ -521,7 +521,7 @@ inst jp
 			if ~cnd scale 0 & cnd relativeto cnd element 1 \
 			  & cnd metadata 1 element 1 relativeto ez80.b \
 			  & cnd metadata 1 scale 0 and 007o = 001o
-				db cnd metadata 1 scale 0 and 070o or 302o
+				db cnd metadata 1 scale 0 and 070o + 302o
 				ez80.word adr
 			end if
 		restore adr, cnd
@@ -552,7 +552,7 @@ inst call
 			if ~cnd scale 0 & cnd relativeto cnd element 1 \
 			  & cnd metadata 1 element 1 relativeto ez80.b \
 			  & cnd metadata 1 scale 0 and 007o = 001o
-				db cnd metadata 1 scale 0 and 070o or 304o
+				db cnd metadata 1 scale 0 and 070o + 304o
 				ez80.word adr
 			end if
 		restore adr, cnd
@@ -569,7 +569,7 @@ inst rst
 	else match a, args
 		adr =: args
 			if adr and 070o = adr
-				db adr or 307o
+				db adr + 307o
 			end if
 		restore adr
 	end match
@@ -583,12 +583,12 @@ iterate name, srl, rlc, rrc, rl, rr, sla, sra
 				 & adr metadata 1 element 1 relativeto ez80.w \
 				 & adr metadata 1 scale 0 = 040o
 					if adr metadata 1 scale 1 and not 007o
-						if adr scale 0 >= -200o & adr scale 0 < 200o
+						if -200o <= adr scale 0 & adr scale 0 < 200o
 							db adr metadata 1 scale 1, 313o, adr scale 0, \
-							   ((% - 2) and 007o) shl 3 or 006o
+							   ((% - 2) and 007o) shl 3 + 006o
 						end if
 					else if ~adr scale 0
-						db 313o, ((% - 2) and 007o) shl 3 or 006o
+						db 313o, ((% - 2) and 007o) shl 3 + 006o
 					end if
 				end if
 			restore adr
@@ -599,7 +599,7 @@ iterate name, srl, rlc, rrc, rl, rr, sla, sra
 				  & reg metadata 1 scale 0 and 070o = 030o     \
 				  & reg metadata 1 scale 1 = 1
 					db 313o, reg metadata 1 scale 0 and 007o   \
-					      or ((% - 2) and 007o) shl 3
+					 + ((% - 2) and 007o) shl 3
 				end if
 			restore reg
 		end match
@@ -611,19 +611,19 @@ iterate name, bit, res, set
 		else match i =, right, args
 			imm =: i
 				if imm and 007o = imm
-					imm = % shl 6 or imm shl 3
+					imm = % shl 6 + imm shl 3
 					match ( a ), right
 						adr =: a
 							if adr relativeto adr element 1               \
 							 & adr metadata 1 element 1 relativeto ez80.w \
 							 & adr metadata 1 scale 0 = 040o
 								if adr metadata 1 scale 1 and not 007o
-									if adr scale 0 >= -200o & adr scale 0 < 200o
+									if -200o <= adr scale 0 & adr scale 0 < 200o
 										db adr metadata 1 scale 1, 313o,  \
-										   adr scale 0, imm or 006o
+										   adr scale 0, imm + 006o
 									end if
 								else if ~adr scale 0
-									db 313o, imm or 006o
+									db 313o, imm + 006o
 								end if
 							end if
 						restore adr
@@ -633,7 +633,7 @@ iterate name, bit, res, set
 							  & reg metadata 1 element 1 relativeto ez80.b \
 							  & reg metadata 1 scale 0 and 070o = 030o     \
 							  & reg metadata 1 scale 1 = 1
-									db 313o, reg metadata 1 scale 0 and 007o or imm
+									db 313o, reg metadata 1 scale 0 and 007o + imm
 							end if
 						restore reg
 					end match
@@ -651,7 +651,7 @@ inst out
 			  & reg metadata 1 element 1 relativeto ez80.b \
 			  & reg metadata 1 scale 1 = 1                 \
 			  & reg metadata 1 scale 0 and 070o = 030o
-				db 355o, reg metadata 1 scale 0 shl 3 and 070o or 101o
+				db 355o, reg metadata 1 scale 0 shl 3 and 070o + 101o
 			end if
 		restore reg
 	else match ( =c? ) =, r, args
@@ -674,7 +674,7 @@ inst in
 			  & reg metadata 1 element 1 relativeto ez80.b \
 			  & reg metadata 1 scale 1 = 1                 \
 			  & reg metadata 1 scale 0 and 070o = 030o
-				db 355o, reg metadata 1 scale 0 shl 3 and 070o or 100o
+				db 355o, reg metadata 1 scale 0 shl 3 and 070o + 100o
 			end if
 		restore reg
 	else match r =, ( =c? ), args
@@ -700,7 +700,7 @@ inst in0
 			  & reg metadata 1 element 1 relativeto ez80.b \
 			  & reg metadata 1 scale 1 = 1                 \
 			  & reg metadata 1 scale 0 and 070o = 030o
-				db 355o, reg metadata 1 scale 0 shl 3 and 070o or 000o, port
+				db 355o, reg metadata 1 scale 0 shl 3 and 070o + 000o, port
 			end if
 		restore port, reg
 	else match ( p ), args
@@ -716,7 +716,7 @@ inst out0
 			  & reg metadata 1 element 1 relativeto ez80.b \
 			  & reg metadata 1 scale 1 = 1                 \
 			  & reg metadata 1 scale 0 and 070o = 030o
-				db 355o, reg metadata 1 scale 0 shl 3 and 070o or 001o, port
+				db 355o, reg metadata 1 scale 0 shl 3 and 070o + 001o, port
 			end if
 		restore reg, port
 	end match
@@ -734,14 +734,14 @@ inst lea
 			  & right metadata 1 element 1 relativeto ez80.w  \
 			  & left metadata 1 scale 0 <> 060o               \
 			  & right metadata 1 scale 1 and not 007o         \
-			  & right scale 0 >= -200o & right scale 0 < 200o
+			  & -200o <= right scale 0 & right scale 0 < 200o
 				if left metadata 1 scale 1 and 002o
 					db 355o, right metadata 1 scale 1 shr 5 and 1 \
-					   or left metadata 1 scale 0 or 002o, right scale 0
+					 + left metadata 1 scale 0 + 002o, right scale 0
 				else if left relativeto right
-					db 355o, left metadata 1 scale 1 shr 5 and 1 or 062o, right scale 0
+					db 355o, left metadata 1 scale 1 shr 5 and 1 + 062o, right scale 0
 				else
-					db 355o, left metadata 1 scale 1 shr 5 and 1 or 124o, right scale 0
+					db 355o, left metadata 1 scale 1 shr 5 and 1 + 124o, right scale 0
 				end if
 			end if
 		restore right, left
@@ -757,7 +757,7 @@ inst tst
 			  & reg metadata 1 element 1 relativeto ez80.b \
 			  & reg metadata 1 scale 1 = 1                 \
 			  & reg metadata 1 scale 0 and 070o = 030o
-				db 355o, reg metadata 1 scale 0 shl 3 and 070o or 004o
+				db 355o, reg metadata 1 scale 0 shl 3 and 070o + 004o
 			end if
 		restore reg
 	end match
@@ -785,7 +785,7 @@ inst mlt
 			if ~reg scale 0 & reg relativeto reg element 1 \
 			  & reg metadata 1 element 1 relativeto ez80.w \
 			  & reg metadata 1 scale 1 and 2
-				db 355o, reg metadata 1 scale 0 or 114o
+				db 355o, reg metadata 1 scale 0 + 114o
 			end if
 		restore reg
 	end match
@@ -798,7 +798,7 @@ inst pea
 			if reg relativeto reg element 1               \
 			 & reg metadata 1 element 1 relativeto ez80.w \
 			 & reg metadata 1 scale 1 and not 007o        \
-			 & reg scale 0 >= -200o & reg scale 0 < 200o
+			 & -200o <= reg scale 0 & reg scale 0 < 200o
 				db 355o, reg metadata 1 scale 1 shr 5 and 1 + 145o, reg scale 0
 			end if
 		restore reg
