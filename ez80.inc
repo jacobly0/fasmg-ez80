@@ -85,8 +85,9 @@ element l?   : ez80.b * 001o + 035o
 element ixl? : ez80.b * 335o + 035o
 element iyl? : ez80.b * 375o + 035o
 element a?   : ez80.b * 001o + 037o
-element i?   : ez80.b * 355o + 107o
-element r?   : ez80.b * 355o + 117o
+element i?   : ez80.b
+element r?   : ez80.b
+element mb?  : ez80.b
 
 element ez80.w
 element bc?  : ez80.w * 007o + 000o
@@ -464,7 +465,56 @@ inst ld
 	else match d =, s, args
 		dst =: d
 		src =: s
-
+			if elementsof src
+				if ~src scale 0 & src relativeto src element 1       \
+				  & src metadata 1 element 1 relativeto ez80.b       \
+				  & src metadata 1 scale 0 and 070o = 030o           \
+				 & ~dst scale 0 & dst relativeto dst element 1       \
+				  & dst metadata 1 element 1 relativeto ez80.b       \
+				  & dst metadata 1 scale 0 and 070o = 030o           \
+				  & ~(src eq dst & src metadata 1 scale 0 <= 033o)   \
+				  & (src metadata 1 scale 1 = dst metadata 1 scale 1 \
+				   | src metadata 1 scale 1 and dst metadata 1 scale 1 = 1)
+					if src metadata 1 scale 1 or dst metadata 1 scale 1 <> 1
+						db src metadata 1 scale 1 or dst metadata 1 scale 1
+					end if
+					db src metadata 1 scale 0 and 007o \
+					 + dst metadata 1 scale 0 shl 3 and 070o + 100o
+				else match =sp? =, =hl?, args
+					db 371o
+				else match =i? =, =a?, args
+					db 355o, 107o
+				else match =r? =, =a?, args
+					db 355o, 117o
+				else match =a? =, =i?, args
+					db 355o, 127o
+				else match =a? =, =r?, args
+					db 355o, 137o
+				else match =mb? =, =a?, args
+					db 355o, 155o
+				else match =a? =, =mb?, args
+					db 355o, 156o
+				else match =i? =, =hl?, args
+					db 355o, 307o
+				else match =hl? =, =i?, args
+					db 355o, 327o
+				end match
+			else if ~dst scale 0 & dst relativeto dst element 1
+				if dst metadata 1 element 1 relativeto ez80.b \
+				 & dst metadata 1 scale 0 and 070o = 030o
+					if dst metadata 1 scale 1 <> 1
+						db dst metadata 1 scale 1
+					end if
+					db dst metadata 1 scale 0 shl 3 and 070o + 006o, src
+				else if dst metadata 1 element 1 relativeto ez80.w \
+				      & dst metadata 1 scale 1 and 004o
+					if dst metadata 1 scale 1 and not 007o
+						db dst metadata 1 scale 1
+					end if
+					db dst metadata 1 scale 0 + 001o
+					ez80.word src
+				end if
+			end if
 		restore src, dst
 	end match
 end inst
