@@ -1,8 +1,17 @@
 define ez80
 
-macro ez80.word v
+macro ez80.long v
 	val =: v
 		db val and 377o, val shr 8 and 377o, val shr 16
+	restore val
+end macro
+macro ez80.word v
+	val =: v
+		if ez80.il
+			ez80.long val
+		else
+			dw val
+		end if
 	restore val
 end macro
 
@@ -18,11 +27,11 @@ macro dl? defs&
 		else match t =dup? v, def
 			times =: t
 				repeat times
-					ez80.word v
+					ez80.long v
 				end repeat
 			restore times
 		else
-			ez80.word def
+			ez80.long def
 		end match
 	end iterate
 end macro
@@ -318,7 +327,7 @@ inst jq
 					db cnd metadata 1 scale 0 and 030o or 040o, off
 				else
 					db cnd metadata 1 scale 0 and 030o or 302o
-					dl adr
+					ez80.word adr
 				end if
 			end if
 		restore off, adr, cnd
@@ -330,7 +339,7 @@ inst jq
 				db 030o, off
 			else
 				db 303o
-				dl adr
+				ez80.word adr
 			end if
 		restore off, adr
 	end match
@@ -513,7 +522,7 @@ inst jp
 			  & cnd metadata 1 element 1 relativeto ez80.b \
 			  & cnd metadata 1 scale 0 and 007o = 001o
 				db cnd metadata 1 scale 0 and 070o or 302o
-				dl adr
+				ez80.word adr
 			end if
 		restore adr, cnd
 	else match ( a ), args
@@ -530,7 +539,7 @@ inst jp
 	else match a, args
 		adr =: a
 			db 303o
-			dl adr
+			ez80.word adr
 		restore adr
 	end match
 end inst
@@ -544,14 +553,14 @@ inst call
 			  & cnd metadata 1 element 1 relativeto ez80.b \
 			  & cnd metadata 1 scale 0 and 007o = 001o
 				db cnd metadata 1 scale 0 and 070o or 304o
-				dl adr
+				ez80.word adr
 			end if
 		restore adr, cnd
 	else match ( a ), args
 	else match a, args
 		adr =: a
 			db 315o
-			dl adr
+			ez80.word adr
 		restore adr
 	end match
 end inst
