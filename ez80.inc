@@ -373,6 +373,9 @@ iterate name, adc, sbc
 					db 355o, reg metadata 1 scale 0 + 122o - % shl 3
 				end if
 			restore reg
+		else match a =, r, args
+		else match r, args
+			name? a, r
 		end match
 	end inst
 end iterate
@@ -407,6 +410,9 @@ iterate <name*, code*>, sub, 020o, and, 040o, xor, 050o, or, 060o, cp, 070o
 					db code or 306o, reg
 				end if
 			restore reg
+		else match a =, r, args
+		else match r, args
+			name? a, r
 		end match
 	end inst
 end iterate
