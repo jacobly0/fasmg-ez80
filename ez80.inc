@@ -498,8 +498,15 @@ inst ld
 					end if
 					db src metadata 1 scale 0 and 007o \
 					 + dst metadata 1 scale 0 shl 3 and 070o + 100o
-				else match =sp? =, =hl?, args
-					db 371o
+				else if dst eq SP?
+					if ~src scale 0 & src relativeto src element 1 \
+					  & src metadata 1 element 1 relativeto ez80.w \
+					  & src metadata 1 scale 0 = 040o
+						if src metadata 1 scale 1 and not 007o
+							db src metadata 1 scale 1
+						end if
+						db 371o
+					end if
 				else match =i? =, =a?, args
 					db 355o, 107o
 				else match =r? =, =a?, args
@@ -799,7 +806,7 @@ iterate name, srl, rlc, rrc, rl, rr, sla, sra
 end iterate
 iterate name, bit, res, set
 	inst name
-		match ( a ) =, right
+		match ( a ) =, right, args
 		else match i =, right, args
 			imm =: i
 				if imm and 007o = imm
