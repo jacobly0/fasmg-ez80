@@ -1,35 +1,34 @@
 define ez80
 
 macro ez80.long v
-	val =: v
-		db val and 377o, val shr 8 and 377o, val shr 16
-	restore val
+	local val
+	val = v
+	db val and 377o, val shr 8 and 377o, val shr 16
 end macro
 macro ez80.word v
-	val =: v
-		if ez80.il
-			ez80.long val
-		else
-			dw val
-		end if
-	restore val
+	local val
+	val = v
+	if ez80.il
+		ez80.long val
+	else
+		dw val
+	end if
 end macro
 
 long? = 3
 macro dl? defs&
+	local times
 	iterate def, defs
 		match ?, def
 			db 3 dup ?
 		else match t =dup? ?, def
-			times =: t
-				db times * 3 dup ?
-			restore times
+			times = t
+			db times * 3 dup ?
 		else match t =dup? v, def
-			times =: t
-				repeat times
-					ez80.long v
-				end repeat
-			restore times
+			times = t
+			repeat times
+				ez80.long v
+			end repeat
 		else
 			ez80.long def
 		end match
@@ -40,9 +39,9 @@ struc dl? expr&
 	dl? expr
 end struc
 macro rl? c
-	count =: c
-		rb count * 3
-	restore count
+	local count
+	count = c
+	rb count * 3
 end macro
 struc rl? defs&
 	label . : long
@@ -50,16 +49,17 @@ struc rl? defs&
 end struc
 
 macro assume? expr&
+	local v
 	match =adl? == v, expr
-		val =: v
-			if val and 1 = val
-				ez80.l = val
-				ez80.il = val
-				ez80.adl = val
-			else
-				err "illegal value for adl"
-			end if
-		restore val
+		val = v
+		if val and 1 = val
+			ez80.l = val
+			ez80.il = val
+			ez80.adl = val
+			ez80.presize = 0
+		else
+			err "illegal value for adl"
+		end if
 	else
 		err "unknown assume statement"
 	end match
@@ -102,6 +102,7 @@ macro ez80.prefix s*, is*
 	ez80.l = s
 	ez80.il = is
 	ez80.lil = ez80.l + ez80.il shl 1
+	ez80.presize = 1
 	db ez80.lil + ez80.lil shl 3 + 100o
 end macro
 macro inst name*
@@ -218,43 +219,47 @@ end iterate
 
 iterate name, inc, dec
 	inst name
+		local adr, reg
 		match ( a ), args
-			adr =: a
-				if adr relativeto adr element 1               \
-				 & adr metadata 1 element 1 relativeto ez80.w \
-				 & adr metadata 1 scale 0 = 040o
-					if adr metadata 1 scale 1 and not 007o
-						if -200o <= adr scale 0 & adr scale 0 < 200o
-							db adr metadata 1 scale 1, % + 063o, adr scale 0
-						end if
-					else if ~adr scale 0
-						db % + 063o
+			virtual at before - ez80.presize
+				adr = a
+			end virtual
+			if adr relativeto adr element 1               \
+			 & adr metadata 1 element 1 relativeto ez80.w \
+			 & adr metadata 1 scale 0 = 040o
+				if adr metadata 1 scale 1 and not 007o
+					if -200o <= adr scale 0 & adr scale 0 < 200o
+						db adr metadata 1 scale 1, % + 063o, adr scale 0
 					end if
+				else if ~adr scale 0
+					db % + 063o
 				end if
-			restore adr
+			end if
 		else match r, args
-			reg =: r
-				if ~reg scale 0 & reg relativeto reg element 1
-					if reg metadata 1 element 1 relativeto ez80.w \
-					 & reg metadata 1 scale 1 and 004o
-						if reg metadata 1 scale 1 and not 007o
-							db reg metadata 1 scale 1
-						end if
-						db reg metadata 1 scale 0 + (% - 1) shl 3 + 003o
-					else if reg metadata 1 element 1 relativeto ez80.b \
-					 & reg metadata 1 scale 0 and 070o = 030o
-						if reg metadata 1 scale 1 and not 007o
-							db reg metadata 1 scale 1
-						end if
-						db reg metadata 1 scale 0 shl 3 and 070o + % + 003o
+			virtual at before - ez80.presize
+				reg = r
+			end virtual
+			if ~reg scale 0 & reg relativeto reg element 1
+				if reg metadata 1 element 1 relativeto ez80.w \
+				 & reg metadata 1 scale 1 and 004o
+					if reg metadata 1 scale 1 and not 007o
+						db reg metadata 1 scale 1
 					end if
+					db reg metadata 1 scale 0 + (% - 1) shl 3 + 003o
+				else if reg metadata 1 element 1 relativeto ez80.b \
+				 & reg metadata 1 scale 0 and 070o = 030o
+					if reg metadata 1 scale 1 and not 007o
+						db reg metadata 1 scale 1
+					end if
+					db reg metadata 1 scale 0 shl 3 and 070o + % + 003o
 				end if
-			restore reg
+			end if
 		end match
 	end inst
 end iterate
 
 inst ex
+	local reg
 	match left =, right, args
 		iterate <arg1, arg2>, left, right, right, left
 			match =af?, arg1
@@ -262,16 +267,17 @@ inst ex
 					db 010o
 				end match
 			else match ( =sp? ), arg1
-				reg =: arg2
-					if ~reg scale 0 & reg relativeto reg element 1 \
-					  & reg metadata 1 element 1 relativeto ez80.w \
-					  & reg metadata 1 scale 0 = 040o
-						if reg metadata 1 scale 1 and not 007o
-							db reg metadata 1 scale 1
-						end if
-						db 343o
+				virtual at before - ez80.presize
+					reg = arg2
+				end virtual
+				if ~reg scale 0 & reg relativeto reg element 1 \
+				  & reg metadata 1 element 1 relativeto ez80.w \
+				  & reg metadata 1 scale 0 = 040o
+					if reg metadata 1 scale 1 and not 007o
+						db reg metadata 1 scale 1
 					end if
-				restore reg
+					db 343o
+				end if
 			else match =de?, arg1
 				match =hl?, arg2
 					db 353o
@@ -282,283 +288,354 @@ inst ex
 end inst
 
 inst djnz
+	local off
 	match ( a ), args
 	else match a, args
-		adr =: a
-		off =: adr - $ - 2
-			if -200o <= off & off < 200o
-				db 020o, off
-			end if
-		restore off, adr
+		virtual at before - ez80.presize
+			off = a
+		end virtual
+		off = off - after
+		if -200o <= off & off < 200o
+			db 020o, off
+		end if
 	end match
 end inst
 inst jr
+	local cnd, off
 	match ( c ) =, a, args
 	else match c =, ( a ), args
 	else match c =, a, args
-		cnd =: c
-		adr =: a
-		off =: adr - $ - 2
-			if ~cnd scale 0 & cnd relativeto cnd element 1 \
-			  & cnd metadata 1 element 1 relativeto ez80.b \
-			  & cnd metadata 1 scale 0 and 007o = 001o     \
-			  & cnd metadata 1 scale 0 < 040o              \
-			  & -200o <= off & off < 200o
-				db cnd metadata 1 scale 0 and 030o + 040o, off
-			end if
-		restore off, adr, cnd
+		virtual at before - ez80.presize
+			cnd = c
+			off = a
+		end virtual
+		off = off - after
+		if ~cnd scale 0 & cnd relativeto cnd element 1 \
+		  & cnd metadata 1 element 1 relativeto ez80.b \
+		  & cnd metadata 1 scale 0 and 007o = 001o     \
+		  & cnd metadata 1 scale 0 < 040o              \
+		  & -200o <= off & off < 200o
+			db cnd metadata 1 scale 0 and 030o + 040o, off
+		end if
 	else match ( a ), args
 	else match a, args
-		adr =: a
-		off = adr - $ - 2
-			if -200o <= off & off < 200o
-				db 030o, off
-			end if
-		restore off, adr
+		virtual at before - ez80.presize
+			off = a
+		end virtual
+		off = off - after
+		if -200o <= off & off < 200o
+			db 030o, off
+		end if
 	end match
 end inst
 inst jq
+	local cnd, off
 	match ( c ) =, a, args
 	else match c =, ( a ), args
 	else match c =, a, args
-		cnd =: c
-		adr =: a
-		off =: adr - $ - 2
-			if ~cnd scale 0 & cnd relativeto cnd element 1 \
-			  & cnd metadata 1 element 1 relativeto ez80.b \
-			  & cnd metadata 1 scale 0 and 007o = 001o     \
-			  & cnd metadata 1 scale 0 < 040o
-				if -200o <= off & off < 200o
-					db cnd metadata 1 scale 0 and 030o + 040o, off
-				else
-					db cnd metadata 1 scale 0 and 030o + 302o
-					ez80.word adr
-				end if
-			end if
-		restore off, adr, cnd
-	else match ( a ), args
-	else match a, args
-		adr =: a
-		off =: adr - $ - 2
+		virtual at before - ez80.presize
+			cnd = c
+			off = a
+		end virtual
+		off = off - after
+		if ~cnd scale 0 & cnd relativeto cnd element 1 \
+		  & cnd metadata 1 element 1 relativeto ez80.b \
+		  & cnd metadata 1 scale 0 and 007o = 001o     \
+		  & cnd metadata 1 scale 0 < 040o
 			if -200o <= off & off < 200o
-				db 030o, off
+				db cnd metadata 1 scale 0 and 030o + 040o, off
 			else
-				db 303o
+				db cnd metadata 1 scale 0 and 030o + 302o
 				ez80.word adr
 			end if
-		restore off, adr
+		end if
+	else match ( a ), args
+	else match a, args
+		virtual at before - ez80.presize
+			off = a
+		end virtual
+		off = off - after
+		if -200o <= off & off < 200o
+			db 030o, off
+		else
+			db 303o
+			ez80.word adr
+		end if
 	end match
 end inst
 
 inst ld
+	local dst, src, code
 	match ( d ) =, ( s ), args
 	else match d =, ( s ), args
-		dst =: d
-		src =: s
+		virtual at before - ez80.presize
+			dst = d
+			src = s
+		end virtual
+		if elementsof src
+			if ~dst scale 0 & dst relativeto dst element 1 \
+			  & src relativeto src element 1               \
+			  & src metadata 1 element 1 relativeto ez80.w
+				if src metadata 1 scale 0 = 040o
+					if dst metadata 1 element 1 relativeto ez80.b \
+					 & dst metadata 1 scale 0 and 070o = 030o     \
+					 & dst metadata 1 scale 1 = 1
+						if src metadata 1 scale 1 and not 007o
+							if -200o <= src scale 0 & src scale 0 < 200o
+								db src metadata 1 scale 1,                       \
+								   dst metadata 1 scale 0 shl 3 and 070o + 106o, \
+								   src scale 0
+							end if
+						else
+							db dst metadata 1 scale 0 shl 3 and 070o + 106o
+						end if
+					else if dst metadata 1 element 1 relativeto ez80.w \
+					      & dst metadata 1 scale 1 and 005o = 005o
+						code = dst metadata 1 scale 0 + 007o
+						if dst metadata 1 scale 1 and not 007o
+							code = code + 020o - 6 * (src metadata 1 scale 1 \
+							         xor dst metadata 1 scale 1) shr 5 and 1
+						end if
+						if src metadata 1 scale 1 and not 007o
+							if -200o <= src scale 0 & src scale 0 < 200o
+								db src metadata 1 scale 1, code, src scale 0
+							end if
+						else if ~src scale 0
+							db 355o, code
+						end if
+					end if
+				else if dst eq A? & src metadata 1 scale 1 and 002o
+					db src metadata 1 scale 0 + 012o
+				end if
+			end if
+		else if dst eq A?
+			db 072o
+			ez80.word src
+		else if ~dst scale 0 & dst relativeto dst element 1 \
+		       & dst metadata 1 element 1 relativeto ez80.w \
+		       & dst metadata 1 scale 1 and 004o
+			if dst metadata 1 scale 0 = 040o
+				if dst metadata 1 scale 1 and not 007o
+					db dst metadata 1 scale 1
+				end if
+				db 052o
+			else
+				db 355o, dst metadata 1 scale 0 + 113o
+			end if
+			ez80.word src
+		end if
+	else match ( d ) =, s, args
+		virtual at before - ez80.presize
+			dst = d
+			src = s
+		end virtual
+		if elementsof dst
 			if elementsof src
-				if ~dst scale 0 & dst relativeto dst element 1 \
-				  & src relativeto src element 1               \
-				  & src metadata 1 element 1 relativeto ez80.w
-					if src metadata 1 scale 0 = 040o
-						if dst metadata 1 element 1 relativeto ez80.b \
-						 & dst metadata 1 scale 0 and 070o = 030o     \
-						 & dst metadata 1 scale 1 = 1
-							if src metadata 1 scale 1 and not 007o
-								if -200o <= src scale 0 & src scale 0 < 200o
-									db src metadata 1 scale 1,                       \
-									   dst metadata 1 scale 0 shl 3 and 070o + 106o, \
-									   src scale 0
+				if ~src scale 0 & src relativeto src element 1 \
+				  & dst relativeto dst element 1               \
+				  & dst metadata 1 element 1 relativeto ez80.w
+					if dst metadata 1 scale 0 = 040o
+						if src metadata 1 element 1 relativeto ez80.b \
+						 & src metadata 1 scale 0 and 070o = 030o     \
+						 & src metadata 1 scale 1 = 1
+							if dst metadata 1 scale 1 and not 007o
+								if -200o <= dst scale 0 & dst scale 0 < 200o
+									db dst metadata 1 scale 1,                 \
+									   src metadata 1 scale 0 and 007o + 160o, \
+									   dst scale 0
 								end if
 							else
-								db dst metadata 1 scale 0 shl 3 and 070o + 106o
+								db src metadata 1 scale 0 and 007o + 160o
 							end if
-						else if dst metadata 1 element 1 relativeto ez80.w \
-						      & dst metadata 1 scale 1 and 005o = 005o
-							code =: dst metadata 1 scale 0 + 007o
-								if dst metadata 1 scale 1 and not 007o
-									code = code + 020o - 6 * (src metadata 1 scale 1 \
-									         xor dst metadata 1 scale 1) shr 5 and 1
+						else if src metadata 1 element 1 relativeto ez80.w \
+						      & src metadata 1 scale 1 and 005o = 005o
+							code = src metadata 1 scale 0 + 017o
+							if src metadata 1 scale 1 and not 007o
+								code = code + 020o - (dst metadata 1 scale 1 \
+								         xor src metadata 1 scale 1) shr 5 and 1
+							end if
+							if dst metadata 1 scale 1 and not 007o
+								if -200o <= dst scale 0 & dst scale 0 < 200o
+									db dst metadata 1 scale 1, code, dst scale 0
 								end if
-								if src metadata 1 scale 1 and not 007o
-									if -200o <= src scale 0 & src scale 0 < 200o
-										db src metadata 1 scale 1, code, src scale 0
-									end if
-								else if ~src scale 0
-									db 355o, code
-								end if
-							restore op
+							else if ~dst scale 0
+								db 355o, code
+							end if
 						end if
-					else if dst eq A? & src metadata 1 scale 1 and 002o
-						db src metadata 1 scale 0 + 012o
+					else if src eq A? & dst metadata 1 scale 1 and 002o
+						db dst metadata 1 scale 0 + 002o
 					end if
 				end if
-			else if dst eq A?
-				db 072o
-				ez80.word src
-			else if ~dst scale 0 & dst relativeto dst element 1 \
-			       & dst metadata 1 element 1 relativeto ez80.w \
-			       & dst metadata 1 scale 1 and 004o
-				if dst metadata 1 scale 0 = 040o
-					if dst metadata 1 scale 1 and not 007o
-						db dst metadata 1 scale 1
+			else if dst relativeto dst element 1               \
+			      & dst metadata 1 element 1 relativeto ez80.w \
+				  & dst metadata 1 scale 0 = 040o
+				if dst metadata 1 scale 1 and not 007o
+					if -200o <= dst scale 0 & dst scale 0 < 200o
+						db dst metadata 1 scale 1, 066o, dst scale 0, src
 					end if
-					db 052o
 				else
-					db 355o, dst metadata 1 scale 0 + 113o
+					db 066o, src
 				end if
-				ez80.word src
 			end if
-		restore src, dst
-	else match ( d ) =, s, args
-		dst =: d
-		src =: s
-			if elementsof dst
-				if elementsof src
-					if ~src scale 0 & src relativeto src element 1 \
-					  & dst relativeto dst element 1               \
-					  & dst metadata 1 element 1 relativeto ez80.w
-						if dst metadata 1 scale 0 = 040o
-							if src metadata 1 element 1 relativeto ez80.b \
-							 & src metadata 1 scale 0 and 070o = 030o     \
-							 & src metadata 1 scale 1 = 1
-								if dst metadata 1 scale 1 and not 007o
-									if -200o <= dst scale 0 & dst scale 0 < 200o
-										db dst metadata 1 scale 1,                 \
-										   src metadata 1 scale 0 and 007o + 160o, \
-										   dst scale 0
-									end if
-								else
-									db src metadata 1 scale 0 and 007o + 160o
-								end if
-							else if src metadata 1 element 1 relativeto ez80.w \
-							      & src metadata 1 scale 1 and 005o = 005o
-								code =: src metadata 1 scale 0 + 017o
-									if src metadata 1 scale 1 and not 007o
-										code = code + 020o - (dst metadata 1 scale 1 \
-										         xor src metadata 1 scale 1) shr 5 and 1
-									end if
-									if dst metadata 1 scale 1 and not 007o
-										if -200o <= dst scale 0 & dst scale 0 < 200o
-											db dst metadata 1 scale 1, code, dst scale 0
-										end if
-									else if ~dst scale 0
-										db 355o, code
-									end if
-								restore op
-							end if
-						else if src eq A? & dst metadata 1 scale 1 and 002o
-							db dst metadata 1 scale 0 + 002o
-						end if
-					end if
-				else if dst relativeto dst element 1               \
-				      & dst metadata 1 element 1 relativeto ez80.w \
-					  & dst metadata 1 scale 0 = 040o
-					if dst metadata 1 scale 1 and not 007o
-						if -200o <= dst scale 0 & dst scale 0 < 200o
-							db dst metadata 1 scale 1, 066o, dst scale 0, src
-						end if
-					else
-						db 066o, src
-					end if
+		else if src eq A?
+			db 062o
+			ez80.word dst
+		else if ~src scale 0 & src relativeto src element 1 \
+		       & src metadata 1 element 1 relativeto ez80.w \
+		       & src metadata 1 scale 1 and 004o
+			if src metadata 1 scale 0 = 040o
+				if src metadata 1 scale 1 and not 007o
+					db src metadata 1 scale 1
 				end if
-			else if src eq A?
-				db 062o
-				ez80.word dst
-			else if ~src scale 0 & src relativeto src element 1 \
-			       & src metadata 1 element 1 relativeto ez80.w \
-			       & src metadata 1 scale 1 and 004o
-				if src metadata 1 scale 0 = 040o
+				db 042o
+			else
+				db 355o, src metadata 1 scale 0 + 103o
+			end if
+			ez80.word dst
+		end if
+	else match d =, s, args
+		virtual at before - ez80.presize
+			dst = d
+			src = s
+		end virtual
+		if elementsof src
+			if ~src scale 0 & src relativeto src element 1       \
+			  & src metadata 1 element 1 relativeto ez80.b       \
+			  & src metadata 1 scale 0 and 070o = 030o           \
+			 & ~dst scale 0 & dst relativeto dst element 1       \
+			  & dst metadata 1 element 1 relativeto ez80.b       \
+			  & dst metadata 1 scale 0 and 070o = 030o           \
+			  & ~(src eq dst & src metadata 1 scale 0 <= 033o)   \
+			  & (src metadata 1 scale 1 = dst metadata 1 scale 1 \
+			   | src metadata 1 scale 1 and dst metadata 1 scale 1 = 1)
+				if src metadata 1 scale 1 or dst metadata 1 scale 1 <> 1
+					db src metadata 1 scale 1 or dst metadata 1 scale 1
+				end if
+				db src metadata 1 scale 0 and 007o \
+				 + dst metadata 1 scale 0 shl 3 and 070o + 100o
+			else if dst eq SP?
+				if ~src scale 0 & src relativeto src element 1 \
+				  & src metadata 1 element 1 relativeto ez80.w \
+				  & src metadata 1 scale 0 = 040o
 					if src metadata 1 scale 1 and not 007o
 						db src metadata 1 scale 1
 					end if
-					db 042o
-				else
-					db 355o, src metadata 1 scale 0 + 103o
+					db 371o
 				end if
-				ez80.word dst
-			end if
-		restore src, dst
-	else match d =, s, args
-		dst =: d
-		src =: s
-			if elementsof src
-				if ~src scale 0 & src relativeto src element 1       \
-				  & src metadata 1 element 1 relativeto ez80.b       \
-				  & src metadata 1 scale 0 and 070o = 030o           \
-				 & ~dst scale 0 & dst relativeto dst element 1       \
-				  & dst metadata 1 element 1 relativeto ez80.b       \
-				  & dst metadata 1 scale 0 and 070o = 030o           \
-				  & ~(src eq dst & src metadata 1 scale 0 <= 033o)   \
-				  & (src metadata 1 scale 1 = dst metadata 1 scale 1 \
-				   | src metadata 1 scale 1 and dst metadata 1 scale 1 = 1)
-					if src metadata 1 scale 1 or dst metadata 1 scale 1 <> 1
-						db src metadata 1 scale 1 or dst metadata 1 scale 1
-					end if
-					db src metadata 1 scale 0 and 007o \
-					 + dst metadata 1 scale 0 shl 3 and 070o + 100o
-				else if dst eq SP?
-					if ~src scale 0 & src relativeto src element 1 \
-					  & src metadata 1 element 1 relativeto ez80.w \
-					  & src metadata 1 scale 0 = 040o
-						if src metadata 1 scale 1 and not 007o
-							db src metadata 1 scale 1
-						end if
-						db 371o
-					end if
-				else match =i? =, =a?, args
-					db 355o, 107o
-				else match =r? =, =a?, args
-					db 355o, 117o
-				else match =a? =, =i?, args
-					db 355o, 127o
-				else match =a? =, =r?, args
-					db 355o, 137o
-				else match =mb? =, =a?, args
-					db 355o, 155o
-				else match =a? =, =mb?, args
-					db 355o, 156o
-				else match =i? =, =hl?, args
-					db 355o, 307o
-				else match =hl? =, =i?, args
-					db 355o, 327o
-				end match
-			else if ~dst scale 0 & dst relativeto dst element 1
-				if dst metadata 1 element 1 relativeto ez80.b \
-				 & dst metadata 1 scale 0 and 070o = 030o
-					if dst metadata 1 scale 1 <> 1
-						db dst metadata 1 scale 1
-					end if
-					db dst metadata 1 scale 0 shl 3 and 070o + 006o, src
-				else if dst metadata 1 element 1 relativeto ez80.w \
-				      & dst metadata 1 scale 1 and 004o
-					if dst metadata 1 scale 1 and not 007o
-						db dst metadata 1 scale 1
-					end if
-					db dst metadata 1 scale 0 + 001o
-					ez80.word src
+			else match =i? =, =a?, args
+				db 355o, 107o
+			else match =r? =, =a?, args
+				db 355o, 117o
+			else match =a? =, =i?, args
+				db 355o, 127o
+			else match =a? =, =r?, args
+				db 355o, 137o
+			else match =mb? =, =a?, args
+				db 355o, 155o
+			else match =a? =, =mb?, args
+				db 355o, 156o
+			else match =i? =, =hl?, args
+				db 355o, 307o
+			else match =hl? =, =i?, args
+				db 355o, 327o
+			end match
+		else if ~dst scale 0 & dst relativeto dst element 1
+			if dst metadata 1 element 1 relativeto ez80.b \
+			 & dst metadata 1 scale 0 and 070o = 030o
+				if dst metadata 1 scale 1 <> 1
+					db dst metadata 1 scale 1
 				end if
+				db dst metadata 1 scale 0 shl 3 and 070o + 006o, src
+			else if dst metadata 1 element 1 relativeto ez80.w \
+			      & dst metadata 1 scale 1 and 004o
+				if dst metadata 1 scale 1 and not 007o
+					db dst metadata 1 scale 1
+				end if
+				db dst metadata 1 scale 0 + 001o
+				ez80.word src
 			end if
-		restore src, dst
+		end if
 	end match
 end inst
 
 inst add
+	local adr, dst, reg
 	match =a? =, ( a ), args
-		adr =: a
+		virtual at before - ez80.presize
+			adr = a
+		end virtual
+		if adr relativeto adr element 1               \
+		 & adr metadata 1 element 1 relativeto ez80.w \
+		 & adr metadata 1 scale 0 = 040o
+			if adr metadata 1 scale 1 and not 007o
+				if -200o <= adr scale 0 & adr scale 0 < 200o
+					db adr metadata 1 scale 1, 206o, adr scale 0
+				end if
+			else if ~adr scale 0
+				db 206o
+			end if
+		end if
+	else match =a? =, r, args
+		virtual at before - ez80.presize
+			reg = r
+		end virtual
+		if elementsof reg
+			if ~reg scale 0 & reg relativeto reg element 1 \
+			  & reg metadata 1 element 1 relativeto ez80.b \
+			  & reg metadata 1 scale 0 and 070o = 030o
+				if reg metadata 1 scale 1 and not 007o
+					db reg metadata 1 scale 1
+				end if
+				db reg metadata 1 scale 0 and 007o + 200o
+			end if
+		else
+			db 306o, reg
+		end if
+	else match hl =, ( a ), args
+	else match hl =, r, args
+		virtual at before - ez80.presize
+			dst = hl
+			reg = r
+		end virtual
+		if ~dst scale 0 & dst relativeto dst element 1       \
+		  & dst metadata 1 element 1 relativeto ez80.w       \
+		  & dst metadata 1 scale 0 = 040o                    \
+		 & ~reg scale 0 & reg relativeto reg element 1       \
+		  & reg metadata 1 element 1 relativeto ez80.w       \
+		  & reg metadata 1 scale 1 & 004o                    \
+		 & (dst metadata 1 scale 0 <> reg metadata 1 scale 0 \
+		  | dst metadata 1 scale 1 =  reg metadata 1 scale 1)
+			if dst metadata 1 scale 1 and not 007o
+				db dst metadata 1 scale 1
+			end if
+			db reg metadata 1 scale 0 + 011o
+		end if
+	else
+		add? a, args
+	end match
+end inst
+iterate name, adc, sbc
+	inst name
+		local adr, reg
+		match =a? =, ( a ), args
+			virtual at before - ez80.presize
+				adr = a
+			end virtual
 			if adr relativeto adr element 1               \
 			 & adr metadata 1 element 1 relativeto ez80.w \
 			 & adr metadata 1 scale 0 = 040o
 				if adr metadata 1 scale 1 and not 007o
 					if -200o <= adr scale 0 & adr scale 0 < 200o
-						db adr metadata 1 scale 1, 206o, adr scale 0
+						db adr metadata 1 scale 1, % shl 4 + 176o, adr scale 0
 					end if
 				else if ~adr scale 0
-					db 206o
+					db % shl 4 + 176o
 				end if
 			end if
-		restore adr
-	else match =a? =, r, args
-		reg =: r
+		else match =a? =, r, args
+			virtual at before - ez80.presize
+				reg = r
+			end virtual
 			if elementsof reg
 				if ~reg scale 0 & reg relativeto reg element 1 \
 				  & reg metadata 1 element 1 relativeto ez80.b \
@@ -566,74 +643,21 @@ inst add
 					if reg metadata 1 scale 1 and not 007o
 						db reg metadata 1 scale 1
 					end if
-					db reg metadata 1 scale 0 and 007o + 200o
+					db reg metadata 1 scale 0 and 007o + % shl 4 + 170o
 				end if
 			else
-				db 306o, reg
+				db % shl 4 + 276o, reg
 			end if
-		restore reg
-	else match hl =, ( a ), args
-	else match hl =, r, args
-		dst =: hl
-		reg =: r
-			if ~dst scale 0 & dst relativeto dst element 1       \
-			  & dst metadata 1 element 1 relativeto ez80.w       \
-			  & dst metadata 1 scale 0 = 040o                    \
-			 & ~reg scale 0 & reg relativeto reg element 1       \
-			  & reg metadata 1 element 1 relativeto ez80.w       \
-			  & reg metadata 1 scale 1 & 004o                    \
-			 & (dst metadata 1 scale 0 <> reg metadata 1 scale 0 \
-			  | dst metadata 1 scale 1 =  reg metadata 1 scale 1)
-				if dst metadata 1 scale 1 and not 007o
-					db dst metadata 1 scale 1
-				end if
-				db reg metadata 1 scale 0 + 011o
-			end if
-		restore reg, dst
-	else
-		add? a, args
-	end match
-end inst
-iterate name, adc, sbc
-	inst name
-		match =a? =, ( a ), args
-			adr =: a
-				if adr relativeto adr element 1               \
-				 & adr metadata 1 element 1 relativeto ez80.w \
-				 & adr metadata 1 scale 0 = 040o
-					if adr metadata 1 scale 1 and not 007o
-						if -200o <= adr scale 0 & adr scale 0 < 200o
-							db adr metadata 1 scale 1, % shl 4 + 176o, adr scale 0
-						end if
-					else if ~adr scale 0
-						db % shl 4 + 176o
-					end if
-				end if
-			restore adr
-		else match =a? =, r, args
-			reg =: r
-				if elementsof reg
-					if ~reg scale 0 & reg relativeto reg element 1 \
-					  & reg metadata 1 element 1 relativeto ez80.b \
-					  & reg metadata 1 scale 0 and 070o = 030o
-						if reg metadata 1 scale 1 and not 007o
-							db reg metadata 1 scale 1
-						end if
-						db reg metadata 1 scale 0 and 007o + % shl 4 + 170o
-					end if
-				else
-					db % shl 4 + 276o, reg
-				end if
-			restore reg
 		else match =hl? =, ( a ), args
 		else match =hl? =, r, args
-			reg =: r
-				if ~reg scale 0 & reg relativeto reg element 1 \
-				  & reg metadata 1 element 1 relativeto ez80.w \
-				  & reg metadata 1 scale 1 and 002o
-					db 355o, reg metadata 1 scale 0 + 122o - % shl 3
-				end if
-			restore reg
+			virtual at before - ez80.presize
+				reg = r
+			end virtual
+			if ~reg scale 0 & reg relativeto reg element 1 \
+			  & reg metadata 1 element 1 relativeto ez80.w \
+			  & reg metadata 1 scale 1 and 002o
+				db 355o, reg metadata 1 scale 0 + 122o - % shl 3
+			end if
 		else match a =, r, args
 		else
 			name? a, args
@@ -642,35 +666,38 @@ iterate name, adc, sbc
 end iterate
 iterate <name*, code*>, sub, 020o, and, 040o, xor, 050o, or, 060o, cp, 070o
 	inst name
+		local adr, reg
 		match =a? =, ( a ), args
-			adr =: a
-				if adr relativeto adr element 1               \
-				 & adr metadata 1 element 1 relativeto ez80.w \
-				 & adr metadata 1 scale 0 = 040o
-					if adr metadata 1 scale 1 and not 007o
-						if -200o <= adr scale 0 & adr scale 0 < 200o
-							db adr metadata 1 scale 1, code + 206o, adr scale 0
-						end if
-					else if ~adr scale 0
-						db code + 206o
+			virtual at before - ez80.presize
+				adr = a
+			end virtual
+			if adr relativeto adr element 1               \
+			 & adr metadata 1 element 1 relativeto ez80.w \
+			 & adr metadata 1 scale 0 = 040o
+				if adr metadata 1 scale 1 and not 007o
+					if -200o <= adr scale 0 & adr scale 0 < 200o
+						db adr metadata 1 scale 1, code + 206o, adr scale 0
 					end if
+				else if ~adr scale 0
+					db code + 206o
 				end if
-			restore adr
+			end if
 		else match =a? =, r, args
-			reg =: r
-				if elementsof reg
-					if ~reg scale 0 & reg relativeto reg element 1 \
-					  & reg metadata 1 element 1 relativeto ez80.b \
-					  & reg metadata 1 scale 0 and 070o = 030o
-						if reg metadata 1 scale 1 and not 007o
-							db reg metadata 1 scale 1
-						end if
-						db reg metadata 1 scale 0 and 007o + code + 200o
+			virtual at before - ez80.presize
+				reg = r
+			end virtual
+			if elementsof reg
+				if ~reg scale 0 & reg relativeto reg element 1 \
+				  & reg metadata 1 element 1 relativeto ez80.b \
+				  & reg metadata 1 scale 0 and 070o = 030o
+					if reg metadata 1 scale 1 and not 007o
+						db reg metadata 1 scale 1
 					end if
-				else
-					db code + 306o, reg
+					db reg metadata 1 scale 0 and 007o + code + 200o
 				end if
-			restore reg
+			else
+				db code + 306o, reg
+			end if
 		else match a =, r, args
 		else
 			name? a, args
@@ -679,288 +706,323 @@ iterate <name*, code*>, sub, 020o, and, 040o, xor, 050o, or, 060o, cp, 070o
 end iterate
 
 inst ret
+	local cnd
 	match ( c ), args
 	else match c, args
-		cnd =: c
-			if ~cnd scale 0 & cnd relativeto cnd element 1 \
-			  & cnd metadata 1 element 1 relativeto ez80.b \
-			  & cnd metadata 1 scale 0 and 007o = 001o
-				db cnd metadata 1 scale 0 and 070o + 300o
-			end if
-		restore cnd
+		virtual at before - ez80.presize
+			cnd = c
+		end virtual
+		if ~cnd scale 0 & cnd relativeto cnd element 1 \
+		  & cnd metadata 1 element 1 relativeto ez80.b \
+		  & cnd metadata 1 scale 0 and 007o = 001o
+			db cnd metadata 1 scale 0 and 070o + 300o
+		end if
 	else
 		db 311o
 	end match
 end inst
 iterate name, pop, push
 	inst name
+		local reg
 		match ( a ), args
 		else match r, args
-			reg =: r
-				if ~reg scale 0 & reg relativeto reg element 1 \
-				  & reg metadata 1 element 1 relativeto ez80.w \
-				  & reg metadata 1 scale 1 and 1
-					if reg metadata 1 scale 1 and not 007o
-						db reg metadata 1 scale 1
-					end if
-					db reg metadata 1 scale 0 + % shl 2 + 275o
+			virtual at before - ez80.presize
+				reg = r
+			end virtual
+			if ~reg scale 0 & reg relativeto reg element 1 \
+			  & reg metadata 1 element 1 relativeto ez80.w \
+			  & reg metadata 1 scale 1 and 1
+				if reg metadata 1 scale 1 and not 007o
+					db reg metadata 1 scale 1
 				end if
-			restore reg
+				db reg metadata 1 scale 0 + % shl 2 + 275o
+			end if
 		end match
 	end inst
 end iterate
 inst jp
+	local cnd, adr
 	match ( c ) =, a, args
 	else match c =, ( a ), args
 	else match c =, a, args
-		cnd =: c
-		adr =: a
-			if ~cnd scale 0 & cnd relativeto cnd element 1 \
-			  & cnd metadata 1 element 1 relativeto ez80.b \
-			  & cnd metadata 1 scale 0 and 007o = 001o
-				db cnd metadata 1 scale 0 and 070o + 302o
-				ez80.word adr
-			end if
-		restore adr, cnd
-	else match ( a ), args
-		adr =: a
-			if ~adr scale 0 & adr relativeto adr element 1 \
-			  & adr metadata 1 element 1 relativeto ez80.w \
-			  & adr metadata 1 scale 0 = 040o
-				if adr metadata 1 scale 1 and not 007o
-					db adr metadata 1 scale 1
-				end if
-				db 351o
-			end if
-		restore adr
-	else match a, args
-		adr =: a
-			db 303o
+		virtual at before - ez80.presize
+			cnd = c
+			adr = a
+		end virtual
+		if ~cnd scale 0 & cnd relativeto cnd element 1 \
+		  & cnd metadata 1 element 1 relativeto ez80.b \
+		  & cnd metadata 1 scale 0 and 007o = 001o
+			db cnd metadata 1 scale 0 and 070o + 302o
 			ez80.word adr
-		restore adr
+		end if
+	else match ( a ), args
+		virtual at before - ez80.presize
+			adr = a
+		end virtual
+		if ~adr scale 0 & adr relativeto adr element 1 \
+		  & adr metadata 1 element 1 relativeto ez80.w \
+		  & adr metadata 1 scale 0 = 040o
+			if adr metadata 1 scale 1 and not 007o
+				db adr metadata 1 scale 1
+			end if
+			db 351o
+		end if
+	else match a, args
+		virtual at before - ez80.presize
+			adr = a
+		end virtual
+		db 303o
+		ez80.word adr
 	end match
 end inst
 inst call
+	local cnd, adr
 	match ( c ) =, a, args
 	else match c =, ( a ), args
 	else match c =, a, args
-		cnd =: c
-		adr =: a
-			if ~cnd scale 0 & cnd relativeto cnd element 1 \
-			  & cnd metadata 1 element 1 relativeto ez80.b \
-			  & cnd metadata 1 scale 0 and 007o = 001o
-				db cnd metadata 1 scale 0 and 070o + 304o
-				ez80.word adr
-			end if
-		restore adr, cnd
+		virtual at before - ez80.presize
+			cnd = c
+			adr = a
+		end virtual
+		if ~cnd scale 0 & cnd relativeto cnd element 1 \
+		  & cnd metadata 1 element 1 relativeto ez80.b \
+		  & cnd metadata 1 scale 0 and 007o = 001o
+			db cnd metadata 1 scale 0 and 070o + 304o
+			ez80.word adr
+		end if
 	else match ( a ), args
 	else match a, args
-		adr =: a
-			db 315o
-			ez80.word adr
-		restore adr
+		virtual at before - ez80.presize
+			adr = a
+		end virtual
+		db 315o
+		ez80.word adr
 	end match
 end inst
 inst rst
 	match ( a ), args
 	else match a, args
-		adr =: args
-			if adr and 070o = adr
-				db adr + 307o
-			end if
-		restore adr
+		virtual at before - ez80.presize
+			adr = a
+		end virtual
+		if adr and 070o = adr
+			db adr + 307o
+		end if
 	end match
 end inst
 
 iterate name, srl, rlc, rrc, rl, rr, sla, sra
 	inst name
+		local adr, reg
 		match ( a ), args
-			adr =: a
-				if adr relativeto adr element 1               \
-				 & adr metadata 1 element 1 relativeto ez80.w \
-				 & adr metadata 1 scale 0 = 040o
-					if adr metadata 1 scale 1 and not 007o
-						if -200o <= adr scale 0 & adr scale 0 < 200o
-							db adr metadata 1 scale 1, 313o, adr scale 0, \
-							   ((% - 2) and 007o) shl 3 + 006o
-						end if
-					else if ~adr scale 0
-						db 313o, ((% - 2) and 007o) shl 3 + 006o
+			virtual at before - ez80.presize
+				adr = a
+			end virtual
+			if adr relativeto adr element 1               \
+			 & adr metadata 1 element 1 relativeto ez80.w \
+			 & adr metadata 1 scale 0 = 040o
+				if adr metadata 1 scale 1 and not 007o
+					if -200o <= adr scale 0 & adr scale 0 < 200o
+						db adr metadata 1 scale 1, 313o, adr scale 0, \
+						   ((% - 2) and 007o) shl 3 + 006o
 					end if
+				else if ~adr scale 0
+					db 313o, ((% - 2) and 007o) shl 3 + 006o
 				end if
-			restore adr
+			end if
 		else match r, args
-			reg =: r
-				if ~reg scale 0 & reg relativeto reg element 1 \
-				  & reg metadata 1 element 1 relativeto ez80.b \
-				  & reg metadata 1 scale 0 and 070o = 030o     \
-				  & reg metadata 1 scale 1 = 1
-					db 313o, reg metadata 1 scale 0 and 007o   \
-					 + ((% - 2) and 007o) shl 3
-				end if
-			restore reg
+			virtual at before - ez80.presize
+				reg = r
+			end virtual
+			if ~reg scale 0 & reg relativeto reg element 1 \
+			  & reg metadata 1 element 1 relativeto ez80.b \
+			  & reg metadata 1 scale 0 and 070o = 030o     \
+			  & reg metadata 1 scale 1 = 1
+				db 313o, reg metadata 1 scale 0 and 007o   \
+				 + ((% - 2) and 007o) shl 3
+			end if
 		end match
 	end inst
 end iterate
 iterate name, bit, res, set
 	inst name
+		local imm, adr, reg
 		match ( a ) =, right, args
 		else match i =, right, args
-			imm =: i
-				if imm and 007o = imm
-					imm = % shl 6 + imm shl 3
-					match ( a ), right
-						adr =: a
-							if adr relativeto adr element 1               \
-							 & adr metadata 1 element 1 relativeto ez80.w \
-							 & adr metadata 1 scale 0 = 040o
-								if adr metadata 1 scale 1 and not 007o
-									if -200o <= adr scale 0 & adr scale 0 < 200o
-										db adr metadata 1 scale 1, 313o,  \
-										   adr scale 0, imm + 006o
-									end if
-								else if ~adr scale 0
-									db 313o, imm + 006o
-								end if
+			virtual at before - ez80.presize
+				imm = i
+			end virtual
+			if imm and 007o = imm
+				imm = % shl 6 + imm shl 3
+				match ( a ), right
+					virtual at before - ez80.presize
+						adr = a
+					end virtual
+					if adr relativeto adr element 1               \
+					 & adr metadata 1 element 1 relativeto ez80.w \
+					 & adr metadata 1 scale 0 = 040o
+						if adr metadata 1 scale 1 and not 007o
+							if -200o <= adr scale 0 & adr scale 0 < 200o
+								db adr metadata 1 scale 1, 313o,  \
+								   adr scale 0, imm + 006o
 							end if
-						restore adr
-					else match r, right
-						reg =: r
-							if ~reg scale 0 & reg relativeto reg element 1 \
-							  & reg metadata 1 element 1 relativeto ez80.b \
-							  & reg metadata 1 scale 0 and 070o = 030o     \
-							  & reg metadata 1 scale 1 = 1
-									db 313o, reg metadata 1 scale 0 and 007o + imm
-							end if
-						restore reg
-					end match
-				end if
-			restore imm
+						else if ~adr scale 0
+							db 313o, imm + 006o
+						end if
+					end if
+				else match r, right
+					virtual at before - ez80.presize
+						reg = r
+					end virtual
+					if ~reg scale 0 & reg relativeto reg element 1 \
+					  & reg metadata 1 element 1 relativeto ez80.b \
+					  & reg metadata 1 scale 0 and 070o = 030o     \
+					  & reg metadata 1 scale 1 = 1
+							db 313o, reg metadata 1 scale 0 and 007o + imm
+					end if
+				end match
+			end if
 		end match
 	end inst
 end iterate
 
 inst out
+	local reg, port
 	match ( p ) =, ( a ), args
 	else match ( =bc? ) =, r, args
-		reg =: r
-			if ~reg scale 0 & reg relativeto reg element 1 \
-			  & reg metadata 1 element 1 relativeto ez80.b \
-			  & reg metadata 1 scale 1 = 1                 \
-			  & reg metadata 1 scale 0 and 070o = 030o
-				db 355o, reg metadata 1 scale 0 shl 3 and 070o + 101o
-			end if
-		restore reg
+		virtual at before - ez80.presize
+			reg = r
+		end virtual
+		if ~reg scale 0 & reg relativeto reg element 1 \
+		  & reg metadata 1 element 1 relativeto ez80.b \
+		  & reg metadata 1 scale 1 = 1                 \
+		  & reg metadata 1 scale 0 and 070o = 030o
+			db 355o, reg metadata 1 scale 0 shl 3 and 070o + 101o
+		end if
 	else match ( =c? ) =, r, args
 		out? (bc), r
 	else match ( p ) =, =a?, args
-		port =: p
-			db 323o, port
-		restore port
+		virtual at before - ez80.presize
+			port = p
+		end virtual
+		db 323o, port
 	end match
 end inst
 inst in
+	local port, reg
 	match =f? =, ( =bc? ), args
-		port =: p
-			db 355o, 160o
-		restore port
+		virtual at before - ez80.presize
+			port = p
+		end virtual
+		db 355o, 160o
 	else match ( a ) =, ( p ), args
 	else match r =, ( =bc? ), args
-		reg =: r
-			if ~reg scale 0 & reg relativeto reg element 1 \
-			  & reg metadata 1 element 1 relativeto ez80.b \
-			  & reg metadata 1 scale 1 = 1                 \
-			  & reg metadata 1 scale 0 and 070o = 030o
-				db 355o, reg metadata 1 scale 0 shl 3 and 070o + 100o
-			end if
-		restore reg
+		virtual at before - ez80.presize
+			reg = r
+		end virtual
+		if ~reg scale 0 & reg relativeto reg element 1 \
+		  & reg metadata 1 element 1 relativeto ez80.b \
+		  & reg metadata 1 scale 1 = 1                 \
+		  & reg metadata 1 scale 0 and 070o = 030o
+			db 355o, reg metadata 1 scale 0 shl 3 and 070o + 100o
+		end if
 	else match r =, ( =c? ), args
 		in? r, (bc)
 	else match =a? =, ( p ), args
-		port =: p
-			db 333o, port
-		restore port
+		virtual at before - ez80.presize
+			port = p
+		end virtual
+		db 333o, port
 	else match ( p ), args
 		in? f, (p)
 	end match
 end inst
 inst in0
+	local port, reg
 	match =f? =, ( p ), args
-		port =: p
-			db 355o, 060o, p
-		restore port
+		virtual at before - ez80.presize
+			port = p
+		end virtual
+		db 355o, 060o, p
 	else match ( a ) =, ( p ), args
 	else match r =, ( p ), args
-		reg =: r
-		port =: p
-			if ~reg scale 0 & reg relativeto reg element 1 \
-			  & reg metadata 1 element 1 relativeto ez80.b \
-			  & reg metadata 1 scale 1 = 1                 \
-			  & reg metadata 1 scale 0 and 070o = 030o
-				db 355o, reg metadata 1 scale 0 shl 3 and 070o + 000o, port
-			end if
-		restore port, reg
+		virtual at before - ez80.presize
+			port = p
+			reg = r
+		end virtual
+		if ~reg scale 0 & reg relativeto reg element 1 \
+		  & reg metadata 1 element 1 relativeto ez80.b \
+		  & reg metadata 1 scale 1 = 1                 \
+		  & reg metadata 1 scale 0 and 070o = 030o
+			db 355o, reg metadata 1 scale 0 shl 3 and 070o + 000o, port
+		end if
 	else match ( p ), args
 		in0? f, (p)
 	end match
 end inst
 inst out0
+	local port, reg
 	match ( p ) =, ( a ), args
 	else match ( p ) =, r, args
-		port =: p
-		reg =: r
-			if ~reg scale 0 & reg relativeto reg element 1 \
-			  & reg metadata 1 element 1 relativeto ez80.b \
-			  & reg metadata 1 scale 1 = 1                 \
-			  & reg metadata 1 scale 0 and 070o = 030o
-				db 355o, reg metadata 1 scale 0 shl 3 and 070o + 001o, port
-			end if
-		restore reg, port
+		virtual at before - ez80.presize
+			port = p
+			reg = r
+		end virtual
+		if ~reg scale 0 & reg relativeto reg element 1 \
+		  & reg metadata 1 element 1 relativeto ez80.b \
+		  & reg metadata 1 scale 1 = 1                 \
+		  & reg metadata 1 scale 0 and 070o = 030o
+			db 355o, reg metadata 1 scale 0 shl 3 and 070o + 001o, port
+		end if
 	end match
 end inst
 
 inst lea
+	local left, right
 	match ( l ) =, r, args
 	else match l =, ( r ), args
 	else match l =, r, args
-		left =: l
-		right =: r
-			if ~left scale 0 & left relativeto left element 1 \
-			               & right relativeto right element 1 \
-			  & left metadata 1 element 1 relativeto ez80.w   \
-			  & right metadata 1 element 1 relativeto ez80.w  \
-			  & left metadata 1 scale 0 <> 060o               \
-			  & right metadata 1 scale 1 and not 007o         \
-			  & -200o <= right scale 0 & right scale 0 < 200o
-				if left metadata 1 scale 1 and 002o
-					db 355o, right metadata 1 scale 1 shr 5 and 1 \
-					 + left metadata 1 scale 0 + 002o, right scale 0
-				else if left relativeto right
-					db 355o, left metadata 1 scale 1 shr 5 and 1 + 062o, right scale 0
-				else
-					db 355o, left metadata 1 scale 1 shr 5 and 1 + 124o, right scale 0
-				end if
+		virtual at before - ez80.presize
+			left = l
+			right = r
+		end virtual
+		if ~left scale 0 & left relativeto left element 1 \
+		               & right relativeto right element 1 \
+		  & left metadata 1 element 1 relativeto ez80.w   \
+		  & right metadata 1 element 1 relativeto ez80.w  \
+		  & left metadata 1 scale 0 <> 060o               \
+		  & right metadata 1 scale 1 and not 007o         \
+		  & -200o <= right scale 0 & right scale 0 < 200o
+			if left metadata 1 scale 1 and 002o
+				db 355o, right metadata 1 scale 1 shr 5 and 1 \
+				 + left metadata 1 scale 0 + 002o, right scale 0
+			else if left relativeto right
+				db 355o, left metadata 1 scale 1 shr 5 and 1 + 062o, right scale 0
+			else
+				db 355o, left metadata 1 scale 1 shr 5 and 1 + 124o, right scale 0
 			end if
-		restore right, left
+		end if
 	end match
 end inst
 
 inst tst
+	local reg
 	match =a? =, ( =hl? ), args
 		db 355o, 064o
 	else match =a? =, r, args
-		reg =: r
-			if elementsof reg
-				if ~reg scale 0 & reg relativeto reg element 1 \
-				  & reg metadata 1 element 1 relativeto ez80.b \
-				  & reg metadata 1 scale 1 = 1                 \
-				  & reg metadata 1 scale 0 and 070o = 030o
-					db 355o, reg metadata 1 scale 0 shl 3 and 070o + 004o
-				end if
-			else
-				db 355o, 144o, reg
+		virtual at before - ez80.presize
+			reg = r
+		end virtual
+		if elementsof reg
+			if ~reg scale 0 & reg relativeto reg element 1 \
+			  & reg metadata 1 element 1 relativeto ez80.b \
+			  & reg metadata 1 scale 1 = 1                 \
+			  & reg metadata 1 scale 0 and 070o = 030o
+				db 355o, reg metadata 1 scale 0 shl 3 and 070o + 004o
 			end if
-		restore reg
+		else
+			db 355o, 144o, reg
+		end if
 	else match d =, s, args
 	else
 		tst? a, args
@@ -968,53 +1030,61 @@ inst tst
 end inst
 
 inst im
+	local imm
 	match ( a ), args
 	else match i, args
-		imm =: i
-			if imm = 0
-				db 355o, 106o
-			else if imm = 1
-				db 355o, 126o
-			else if imm = 2
-				db 355o, 136o
-			end if
-		restore imm
+		virtual at before - ez80.presize
+			imm = i
+		end virtual
+		if imm = 0
+			db 355o, 106o
+		else if imm = 1
+			db 355o, 126o
+		else if imm = 2
+			db 355o, 136o
+		end if
 	end match
 end inst
 
 inst mlt
+	local reg
 	match ( a ), args
 	else match r, args
-		reg =: r
-			if ~reg scale 0 & reg relativeto reg element 1 \
-			  & reg metadata 1 element 1 relativeto ez80.w \
-			  & reg metadata 1 scale 1 and 2
-				db 355o, reg metadata 1 scale 0 + 114o
-			end if
-		restore reg
+		virtual at before - ez80.presize
+			reg = r
+		end virtual
+		if ~reg scale 0 & reg relativeto reg element 1 \
+		  & reg metadata 1 element 1 relativeto ez80.w \
+		  & reg metadata 1 scale 1 and 2
+			db 355o, reg metadata 1 scale 0 + 114o
+		end if
 	end match
 end inst
 
 inst pea
+	local reg
 	match ( a ), args
 	else match r, args
-		reg =: r
-			if reg relativeto reg element 1               \
-			 & reg metadata 1 element 1 relativeto ez80.w \
-			 & reg metadata 1 scale 1 and not 007o        \
-			 & -200o <= reg scale 0 & reg scale 0 < 200o
-				db 355o, reg metadata 1 scale 1 shr 5 and 1 + 145o, reg scale 0
-			end if
-		restore reg
+		virtual at before - ez80.presize
+			reg = r
+		end virtual
+		if reg relativeto reg element 1               \
+		 & reg metadata 1 element 1 relativeto ez80.w \
+		 & reg metadata 1 scale 1 and not 007o        \
+		 & -200o <= reg scale 0 & reg scale 0 < 200o
+			db 355o, reg metadata 1 scale 1 shr 5 and 1 + 145o, reg scale 0
+		end if
 	end match
 end inst
 
 inst tstio
+	local imm
 	match ( a ), args
 	else match i, args
-		imm =: i
-			db 355o, 164o, imm
-		restore imm
+		virtual at before - ez80.presize
+			imm = i
+		end virtual
+		db 355o, 164o, imm
 	end match
 end inst
 
