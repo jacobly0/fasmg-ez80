@@ -376,11 +376,8 @@ inst ld
 						      & dst metadata 1 scale 1 and 005o = 005o
 							code =: dst metadata 1 scale 0 + 007o
 								if dst metadata 1 scale 1 and not 007o
-									code = code + 020o
-									if src metadata 1 scale 1 and 040o \
-									 = dst metadata 1 scale 1 and 040o
-										code = code - 6
-									end if
+									code = code + 020o - 6 * (src metadata 1 scale 1 \
+									         xor dst metadata 1 scale 1) shr 5 and 1
 								end if
 								if src metadata 1 scale 1 and not 007o
 									if -200o <= src scale 0 & src scale 0 < 200o
@@ -436,12 +433,9 @@ inst ld
 							else if src metadata 1 element 1 relativeto ez80.w \
 							      & src metadata 1 scale 1 and 005o = 005o
 								code =: src metadata 1 scale 0 + 017o
-									if src metadata 1 scale 1 and not 017o
-										code = code + 020o
-										if dst metadata 1 scale 1 and 040o \
-										 = src metadata 1 scale 1 and 040o
-											code = code - 1
-										end if
+									if src metadata 1 scale 1 and not 007o
+										code = code + 020o - (dst metadata 1 scale 1 \
+										         xor src metadata 1 scale 1) shr 5 and 1
 									end if
 									if dst metadata 1 scale 1 and not 007o
 										if -200o <= dst scale 0 & dst scale 0 < 200o
