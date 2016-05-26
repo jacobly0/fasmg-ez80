@@ -333,6 +333,58 @@ inst jq
 	end match
 end inst
 
+inst add
+	match =a? =, ( a ), args
+		adr =: a
+			if adr relativeto adr element 1               \
+			 & adr metadata 1 element 1 relativeto ez80.w \
+			 & adr metadata 1 scale 0 = 040o
+				if adr metadata 1 scale 1 and not 007o
+					if adr scale 0 >= -200o & adr scale 0 < 200o
+						db adr metadata 1 scale 1, 206o, adr scale 0
+					end if
+				else if ~adr scale 0
+					db 206o
+				end if
+			end if
+		restore adr
+	else match =a? =, r, args
+		reg =: r
+			if elementsof reg
+				if ~reg scale 0 & reg relativeto reg element 1 \
+				  & reg metadata 1 element 1 relativeto ez80.b \
+				  & reg metadata 1 scale 0 and 070o = 030o
+					if reg metadata 1 scale 1 and not 007o
+						db reg metadata 1 scale 1
+					end if
+					db reg metadata 1 scale 0 and 007o or 200o
+				end if
+			else
+				db 306o, reg
+			end if
+		restore reg
+	else match hl =, ( a ), args
+	else match hl =, r, args
+		dst =: hl
+		reg =: r
+			if ~dst scale 0 & dst relativeto dst element 1       \
+			  & dst metadata 1 element 1 relativeto ez80.w       \
+			  & dst metadata 1 scale 0 = 040o                    \
+			 & ~reg scale 0 & reg relativeto reg element 1       \
+			  & reg metadata 1 element 1 relativeto ez80.w       \
+			  & reg metadata 1 scale 1 & 004o                    \
+			 & (dst metadata 1 scale 0 <> reg metadata 1 scale 0 \
+			  | dst metadata 1 scale 1 =  reg metadata 1 scale 1)
+				if dst metadata 1 scale 1 and not 007o
+					db dst metadata 1 scale 1
+				end if
+				db reg metadata 1 scale 0 or 011o
+			end if
+		restore reg, dst
+	else match r, args
+		add? a, r
+	end match
+end inst
 iterate name, adc, sbc
 	inst name
 		match =a? =, ( a ), args
