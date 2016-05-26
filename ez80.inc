@@ -95,38 +95,41 @@ macro ez80.prefix s*, is*
 	db ez80.lil or ez80.lil shl 3 or 100o
 end macro
 macro inst name*
-	macro name?.s? args&
-		ez80.prefix 0, ez80.il
-		name? args
-	end macro
-	macro name?.l? args&
-		ez80.prefix 1, ez80.il
-		name? args
-	end macro
-	macro name?.is? args&
-		ez80.prefix ez80.l, 0
-		name? args
-	end macro
-	macro name?.il? args&
-		ez80.prefix ez80.l, 1
-		name? args
-	end macro
-	macro name?.sis? args&
-		ez80.prefix 0, 0
-		name? args
-	end macro
-	macro name?.lis? args&
-		ez80.prefix 1, 0
-		name? args
-	end macro
-	macro name?.sil? args&
-		ez80.prefix 0, 1
-		name? args
-	end macro
-	macro name?.lil? args&
-		ez80.prefix 1, 1
-		name? args
-	end macro
+	define name? name
+	namespace name?
+		macro s? args&
+			ez80.prefix 0, ez80.il
+			name? args
+		end macro
+		macro l? args&
+			ez80.prefix 1, ez80.il
+			name? args
+		end macro
+		macro is? args&
+			ez80.prefix ez80.l, 0
+			name? args
+		end macro
+		macro il? args&
+			ez80.prefix ez80.l, 1
+			name? args
+		end macro
+		macro sis? args&
+			ez80.prefix 0, 0
+			name? args
+		end macro
+		macro lis? args&
+			ez80.prefix 1, 0
+			name? args
+		end macro
+		macro sil? args&
+			ez80.prefix 0, 1
+			name? args
+		end macro
+		macro lil? args&
+			ez80.prefix 1, 1
+			name? args
+		end macro
+	end namespace
 	esc macro name? args&
 		local before, after
 	before:	if defined after & before = after
