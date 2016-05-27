@@ -62,9 +62,9 @@ macro #comment?
 end macro
 macro #define? line&
 	rmatch name value, line
-		name reequ (value)
+		redefine name (value)
 	else rmatch name, line
-		name reequ
+		redefine name
 	end rmatch
 end macro
 macro #undef? name*
@@ -74,17 +74,23 @@ macro #undefine? name*
 	restore name
 end macro
 macro #ifdef? name&
-	if defined name
+	local save
+	if defined save | ~ defined name
+		redefine save
+	end if
+	if ~ defined save
 end macro
 macro #ifndef? name&
-	if ~defined name
+	local save
+	if defined save | ~ defined name
+		redefine save
 end macro
 macro #elif?! cond&
-	else.if cond
+	else if cond
 end macro
-macro #endif?! cond&
-	end.if cond
+macro #endif?!
+	end if
 end macro
 macro #endmacro?!
-	esc end.macro
+	esc end macro
 end macro
