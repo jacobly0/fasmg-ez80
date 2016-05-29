@@ -50,31 +50,35 @@ macro format? clause
 			type = 6
 			flag = 0
 			process settings
-	start::	dq '**TI83F*'
+start::		dq '**TI83F*'
 			db 26, 10, 0
 			rb 42
 			dw sizeof all
-	label all : finish - $%
+label all : finish - $%
 			dw sizeof head, sizeof data
-	label head : data - $
+label head : data - $
 			db type
 			dq name
 			db 0, flag
 			dw sizeof data
-	label data : finish - $%
+label data : finish - $%
 			dw sizeof var
-	label var : finish - $%
+label var : finish - $%
 			if defined exec
 				dw 068EFh
 			end if
 			org 0D1A881h
-		end namespace
+code::	end namespace
 		postpone
 			namespace format.ti
 				finish = $%
 				checksum = 0
-				repeat sizeof all
-					load a : byte from start:all+%-1
+				repeat sizeof sizeof head + 6
+					load a : byte from start : head + % - 1
+					checksum = (checksum + a) and 0FFFFh
+				end repeat
+				repeat sizeof var - 2
+					load a : byte from code : 0D1A881h + % - 1
 					checksum = (checksum + a) and 0FFFFh
 				end repeat
 				dw checksum
