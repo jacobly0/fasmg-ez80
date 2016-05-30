@@ -28,9 +28,15 @@ end macro
 struc equ? val&
 	assign ., val
 end struc
+macro Ld args&
+	match =equ? val, args
+		assign Ld, val
+	end match
+end macro
 
 include 'ti84pce.inc'
 
+purge Ld
 restruc equ?
 purge assign
 purge #define?
