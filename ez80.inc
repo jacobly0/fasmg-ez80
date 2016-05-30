@@ -1,17 +1,15 @@
 define ez80
 
-macro ez80.long v
-	local val
-	val = v
-	db val and 377o, val shr 8 and 377o, val shr 16
+macro ez80.long value
+	local v
+	v = value
+	db v and 377o, v shr 8 and 377o, v shr 16
 end macro
-macro ez80.word v
-	local val
-	val = v
+macro ez80.word value
 	if ez80.il
-		ez80.long val
+		ez80.long value
 	else
-		dw val
+		dw value
 	end if
 end macro
 

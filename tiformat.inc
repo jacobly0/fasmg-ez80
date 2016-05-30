@@ -66,7 +66,7 @@ macro format? clause
 			dw sizeof var
 			label var : checkloc - $%
 			if defined exec
-				dw 068EFh
+				dw 07BEFh
 			end if
 			checksum = 0
 		end namespace
