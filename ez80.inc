@@ -16,21 +16,18 @@ macro ez80.word v
 end macro
 
 long? = 3
-macro dl? defs&
-	local times
-	iterate def, defs
-		match ?, def
+macro dl? definitions&
+	iterate value, definitions
+		match ?, value
 			db 3 dup ?
-		else match t =dup? ?, def
-			times = t
-			db times * 3 dup ?
-		else match t =dup? v, def
-			times = t
-			repeat times
+		else match n =dup? ?, value
+			db n dup 3 dup ?
+		else match n =dup? v, value
+			repeat n
 				ez80.long v
 			end repeat
 		else
-			ez80.long def
+			ez80.long value
 		end match
 	end iterate
 end macro
@@ -38,15 +35,15 @@ struc dl? expr&
 	label . : long
 	dl? expr
 end struc
-macro rl? c
-	local count
-	count = c
-	rb count * 3
-end macro
-struc rl? defs&
-	label . : long
-	rl defs&
-end struc
+;macro rl? count
+;	local count
+;	count = c
+;	rb count * 3
+;end macro
+;struc rl? defs&
+;	label . : long
+;	rl defs&
+;end struc
 
 macro assume? expr&
 	local v
