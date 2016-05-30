@@ -50,40 +50,41 @@ macro format? clause
 			type = 6
 			flag = 0
 			process settings
-start::		dq '**TI83F*'
+			dq '**TI83F*'
 			db 26, 10, 0
 			rb 42
 			dw sizeof all
-label all : finish - $%
+			org $ ; checksum from here
+			label all : checkloc - $%
 			dw sizeof head, sizeof data
-label head : data - $
+			label head : data - $
 			db type
 			dq name
 			db 0, flag
 			dw sizeof data
-label data : finish - $%
+			label data : checkloc - $%
 			dw sizeof var
-label var : finish - $%
+			label var : checkloc - $%
 			if defined exec
 				dw 068EFh
 			end if
-			org 0D1A881h
-code::	end namespace
+			checksum = 0
+		end namespace
+		macro org? address
+			local a
+			repeat $ - $$, loc : $$
+				load a : byte from loc
+				format.ti.checksum = (format.ti.checksum + a) and 0FFFFh
+			end repeat
+			org address
+		end macro
+		org 0D1A881h
 		postpone
-			namespace format.ti
-				finish = $%
-				checksum = 0
-				repeat sizeof sizeof head + 6
-					load a : byte from start : head + % - 1
-					checksum = (checksum + a) and 0FFFFh
-				end repeat
-				repeat sizeof var - 2
-					load a : byte from code : 0D1A881h + % - 1
-					checksum = (checksum + a) and 0FFFFh
-				end repeat
-				dw checksum
-			end namespace
+			format.ti.checkloc = $%
+			org $ ; compute checksum
+			dw format.ti.checksum
 		end postpone
+		purge format?
 	else
 		purge format?
 		format? clause
