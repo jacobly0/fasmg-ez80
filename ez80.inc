@@ -3,7 +3,8 @@ define ez80
 macro ez80.long value
 	local v
 	v = value
-	db v and 377o, v shr 8 and 377o, v shr 16
+	db v and 377o
+	dw v shr 8
 end macro
 macro ez80.word value
 	if ez80.il
