@@ -342,7 +342,7 @@ inst jq
 				db cnd metadata 1 scale 0 and 030o + 040o, off
 			else
 				db cnd metadata 1 scale 0 and 030o + 302o
-				ez80.word adr
+				ez80.word a
 			end if
 		end if
 	else match ( a ), args
@@ -355,7 +355,7 @@ inst jq
 			db 030o, off
 		else
 			db 303o
-			ez80.word adr
+			ez80.word a
 		end if
 	end match
 end inst
