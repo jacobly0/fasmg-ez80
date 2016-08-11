@@ -719,8 +719,16 @@ inst ret
 end inst
 iterate name, pop, push
 	inst name
-		local reg
-		match ( a ), args
+		local psize, pl, pil, reg
+		match f r, args
+			psize = ez80.presize
+			pl = ez80.l
+			pil = ez80.il
+			name	f
+			if psize
+				ez80.prefix pl, pil
+			end if
+			name	r
 		else match r, args
 			virtual at before - ez80.presize
 				reg = r
