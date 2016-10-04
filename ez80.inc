@@ -1,34 +1,12 @@
 define ez80
 
-macro ez80.long value
-	local v
-	v = value
-	db v and 377o
-	dw v shr 8
-end macro
 macro ez80.word value
-	if ez80.il
-		ez80.long value
-	else
-		dw value
-	end if
+	emit word + ez80.il : value
 end macro
 
 long? = 3
-macro dl? definitions&
-	iterate value, definitions
-		match ?, value
-			db 3 dup ?
-		else match n =dup? ?, value
-			db n dup 3 dup ?
-		else match n =dup? v, value
-			repeat n
-				ez80.long v
-			end repeat
-		else
-			ez80.long value
-		end match
-	end iterate
+macro dl? defs&
+	emit long : defs
 end macro
 struc dl? expr&
 	label . : long
