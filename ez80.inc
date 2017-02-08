@@ -116,8 +116,8 @@ macro inst name*
 		end macro
 	end namespace
 	esc macro name? args&
-		local before, after
-	before:	if defined after & before = after
+		local noerr, before, after
+	before:	if ~defined noerr & defined after & before = after
 			eval 'err "invalid arguments in ', `name, ' ', `args, '"'
 		end if
 end macro
@@ -303,37 +303,41 @@ inst jr
 	end match
 end inst
 inst jq
-	local cnd, off
+	local cnd, adr, off
 	match ( c ) =, a, args
 	else match c =, ( a ), args
 	else match c =, a, args
 		virtual at before - ez80.presize
 			cnd = c
-			off = a
+			adr = a
 		end virtual
-		off = off - after
+		off = adr - before - ez80.presize - 2
 		if ~cnd scale 0 & cnd relativeto cnd element 1 \
 		  & cnd metadata 1 element 1 relativeto ez80.b \
 		  & cnd metadata 1 scale 0 and 007o = 001o     \
 		  & cnd metadata 1 scale 0 < 040o
-			if -200o <= off & off < 200o
+			if ~off
+				noerr = 1
+			else if -200o <= off & off < 200o
 				db cnd metadata 1 scale 0 and 030o + 040o, off
 			else
 				db cnd metadata 1 scale 0 and 030o + 302o
-				ez80.word a
+				ez80.word adr
 			end if
 		end if
 	else match ( a ), args
 	else match a, args
 		virtual at before - ez80.presize
-			off = a
+			adr = a
 		end virtual
-		off = off - after
-		if -200o <= off & off < 200o
+		off = adr - before - ez80.presize - 2
+		if ~off
+			noerr = 1
+		else if -200o <= off & off < 200o
 			db 030o, off
 		else
 			db 303o
-			ez80.word a
+			ez80.word adr
 		end if
 	end match
 end inst
