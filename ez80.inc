@@ -17,10 +17,10 @@ end struc
 ;	count = c
 ;	rb count * 3
 ;end macro
-;struc rl? defs&
-;	label . : long
-;	rl defs&
-;end struc
+struc rl? defs&
+	label . : long
+	rl defs
+end struc
 
 macro assume? expr&
 	local v
@@ -826,6 +826,9 @@ iterate name, srl, rlc, rrc, rl, rr, sla, sra
 			  & reg metadata 1 scale 1 = 1
 				db 313o, reg metadata 1 scale 0 and 007o   \
 				 + ((% - 2) and 007o) shl 3
+			else if ~elementsof reg & ~ez80.presize & `name eq "rl"
+				rb reg * 3
+				noerr = 1
 			end if
 		end match
 	end inst
