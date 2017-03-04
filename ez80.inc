@@ -382,7 +382,7 @@ inst ld
 							db 355o, code
 						end if
 					end if
-				else if dst eq A? & src metadata 1 scale 1 and 002o
+				else if dst eq A? & src metadata 1 scale 1 = 007o
 					db src metadata 1 scale 0 + 012o
 				end if
 			end if
@@ -440,7 +440,7 @@ inst ld
 								db 355o, code
 							end if
 						end if
-					else if src eq A? & dst metadata 1 scale 1 and 002o
+					else if src eq A? & dst metadata 1 scale 1 = 007o
 						db dst metadata 1 scale 0 + 002o
 					end if
 				end if
