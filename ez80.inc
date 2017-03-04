@@ -967,28 +967,28 @@ inst out0
 end inst
 
 inst lea
-	local left, right
-	match ( l ) =, r, args
-	else match l =, ( r ), args
-	else match l =, r, args
+	local dst, src
+	match ( d ) =, s, args
+	else match d =, ( s ), args
+	else match d =, s, args
 		virtual at before - ez80.presize
-			left = l
-			right = r
+			dst = d
+			src = s
 		end virtual
-		if ~left scale 0 & left relativeto left element 1 \
-		               & right relativeto right element 1 \
-		  & left metadata 1 element 1 relativeto ez80.w   \
-		  & right metadata 1 element 1 relativeto ez80.w  \
-		  & left metadata 1 scale 0 <> 060o               \
-		  & right metadata 1 scale 1 and not 007o         \
-		  & -200o <= right scale 0 & right scale 0 < 200o
-			if left metadata 1 scale 1 and 002o
-				db 355o, right metadata 1 scale 1 shr 5 and 1 \
-				 + left metadata 1 scale 0 + 002o, right scale 0
-			else if left relativeto right
-				db 355o, left metadata 1 scale 1 shr 5 and 1 + 062o, right scale 0
+		if ~dst scale 0 & dst relativeto dst element 1 \
+		                & src relativeto src element 1 \
+		  & dst metadata 1 element 1 relativeto ez80.w \
+		  & src metadata 1 element 1 relativeto ez80.w \
+		  & dst metadata 1 scale 0 <> 060o             \
+		  & src metadata 1 scale 1 and not 007o        \
+		  & -200o <= src scale 0 & src scale 0 < 200o
+			if dst metadata 1 scale 1 and 002o
+				db 355o, src metadata 1 scale 1 shr 5 and 1 \
+				 + dst metadata 1 scale 0 + 002o, src scale 0
+			else if dst relativeto src
+				db 355o, dst metadata 1 scale 1 shr 5 and 1 + 062o, src scale 0
 			else
-				db 355o, left metadata 1 scale 1 shr 5 and 1 + 124o, right scale 0
+				db 355o, dst metadata 1 scale 1 shr 5 and 1 + 124o, src scale 0
 			end if
 		end if
 	end match
