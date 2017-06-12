@@ -1,0 +1,131 @@
+include 'ez80.inc'
+
+global? = 0
+segments? equ
+namespace segments?
+	code? = 0D1A881h
+	data? = code.top
+	text? = data.top
+	strsect? = text.top
+	bss? = 0D031F6h
+	discard? = 0
+
+	segments. reequ code?
+	segments.   equ data?
+	segments.   equ text?
+	segments.   equ strsect?
+	segments.   equ bss?
+	segments.   equ discard?
+
+	macro prolog name
+		namespace segments?
+			rmatch rname, name
+				current reequ rname?
+			end rmatch
+			virtual at current
+		end namespace
+	end macro
+	macro epilog
+		local area, base, top
+		namespace segments?
+			area::
+				match segment, current
+					base = $$
+					top = $
+					segment = top
+					segment.list? equ area base top
+				end match
+			end virtual
+		end namespace
+	end macro
+end namespace
+irpv segment, segments?
+	segment.base? := segment
+end irpv
+postpone
+	irpv segment, segments?
+		segment.top? := segment
+		segment.length? := segment.top - segment.base
+	end irpv
+end postpone
+postpone ?
+	restore segments? ; don't emit discard
+	restore segments? ; don't emit bss
+	length = 0
+	irpv segment, segments?
+		length = length + segment.length
+	end irpv
+	dq '**TI83F*'
+	db 26, 10, 0
+	rb 42
+	dw 2 + 13 + 2 + 2 + 2 + length
+	org 0
+	dw 13, 2 + 2 + length
+	db 6
+	match any, name?
+		dq `any
+	end match
+	dw 0, 2 + 2 + length, 2 + length, 7BEFh
+	checksum = 0
+	repeat $ - $$, cur: $$
+		load a: byte from cur
+		checksum = (checksum + a) and 0FFFFh
+	end repeat
+	irpv segment, segments?
+		irpv entry, segment.list?
+			match area base top, entry
+				repeat top - base, cur: base
+					load a: byte from area: cur
+					checksum = (checksum + a) and 0FFFFh
+					db a
+				end repeat
+			end match
+		end irpv
+	end irpv
+	dw checksum
+end postpone
+
+macro file? name
+end macro
+macro segment? name
+	namespace segments?
+		epilog
+		prolog name
+	end namespace
+end macro
+macro dw24? vals
+	emit 3: vals
+end macro
+macro xref? arg
+	match name : space, arg
+		xref? name
+	else
+		arg = global?.#arg
+	end match
+end macro
+macro xdef? arg
+	match name : space, arg
+		xdef? name
+	else
+		global?.#arg = arg
+	end match
+end macro
+macro end?!
+	segment discard
+end macro
+macro end?! name
+	end.name
+end.macro
+
+match any, files?
+	iterate file, any
+		file = 0
+		namespace file
+			macro .assume? mode
+			end macro
+			segments?.prolog CODE
+			include `file
+			segments?.epilog
+		end namespace
+	end iterate
+end match

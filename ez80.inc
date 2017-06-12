@@ -401,6 +401,9 @@ inst ld
 				db 355o, dst metadata 1 scale 0 + 113o
 			end if
 			ez80.word src
+		else
+			push d
+			pop s
 		end if
 	else match ( d ) =, s, args
 		virtual at before - ez80.presize
@@ -1074,6 +1077,26 @@ inst tstio
 			imm = i
 		end virtual
 		db 355o, 164o, imm
+	end match
+end inst
+
+inst uext
+	match ( a ), args
+	else match d, args
+		if d eq HL?
+			or	a, a
+			sbc	hl, hl
+		end if
+	end match
+end inst
+
+inst sext
+	match ( a ), args
+	else match d, args
+		if d eq HL?
+			scf
+			sbc	hl, hl
+		end if
 	end match
 end inst
 
