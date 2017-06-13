@@ -17,20 +17,22 @@ macro range? args&
 	match first =, second, args
 		range? first
 		range? second
-	else match name lower : upper, args
-		segments? equ segments?.name?
-		segments?.name?::
-		segments?.name?.base? := lower
-		segments?.name?.high? := upper
+	else match segment lower : upper, args
+		segments? equ segments?.segment?
+		segments?.segment?::
+		segments?.segment?.name? := `segment
+		segments?.segment?.base? := lower
+		segments?.segment?.high? := upper
 	else
 		err 'range syntax error'
 	end match
 end macro
 macro locate? args&
-	match name =at? val, args
-		segments? equ segments?.name?
-		segments?.name?::
-		segments?.name?.base? := val
+	match segment =at? val, args
+		segments? equ segments?.segment?
+		segments?.segment?::
+		segments?.segment?.name? := `segment
+		segments?.segment?.base? := val
 	else
 		err 'locate syntax error'
 	end match
@@ -42,6 +44,7 @@ macro order? args&
 	else match first =, second, args
 		segments? equ segments?.second?
 		segments?.second?::
+		segments?.second?.name? := `second
 		segments?.second?.base? := segments?.first?.top?
 	else
 		err 'order syntax error'
@@ -101,6 +104,9 @@ end macro
 ; emit 3 byte values
 macro dw24? vals
 	emit 3: vals
+end macro
+macro ds? val
+	rb val
 end macro
 ; implement external references by...
 macro xref? arg
@@ -182,8 +188,15 @@ postpone ?
 	length = 0
 	; ...by iterating through all the segments...
 	irpv segment, segments?
-		; ...and summing all of their lengths
-		length = length + segment.length
+		; skip segments that aren't emitted
+		if ~defined segment.high
+			; ...and summing all of their lengths
+			length = length + segment.length
+		else if segment.top > segment.high
+			repeat 1, length: segment.length, over: segment.top - segment.high, max: segment.high - segment.base
+				err 'Segment ', segment.name, ' is ', `length, ' bytes, ', `over, ' bytes larger than the maximum of ', `max, ' bytes'
+			end repeat
+		end if
 	end irpv
 	; output the output file header
 	dq '**TI83F*'
@@ -214,21 +227,24 @@ postpone ?
 	end repeat
 	; iterate through the segments
 	irpv segment, segments?
-		; iterate through each block in that segment
-		irpv entry, segment.list?
-			; grab each var in its original context
-			match area base top, entry
-				; iterate through each byte
-				repeat top - base, addr: base
-					; read the next byte
-					load a: byte from area: addr
-					; emit it
-					db a
-					; update the checksum
-					checksum = (checksum + a) and 0FFFFh
-				end repeat
-			end match
-		end irpv
+		; skip segments that aren't emitted
+		if ~defined segment.high
+			; iterate through each block in that segment
+			irpv entry, segment.list?
+				; grab each var in its original context
+				match area base top, entry
+					; iterate through each byte
+					repeat top - base, addr: base
+						; read the next byte
+						load a: byte from area: addr
+						; emit it
+						db a
+						; update the checksum
+						checksum = (checksum + a) and 0FFFFh
+					end repeat
+				end match
+			end irpv
+		end if
 	end irpv
 	; emit the checksum
 	dw checksum
