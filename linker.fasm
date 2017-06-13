@@ -50,6 +50,25 @@ macro order? args&
 		err 'order syntax error'
 	end match
 end macro
+macro merge? args&
+	match segment == list, args
+		order? list
+		segments?.segment?::
+		segments?.segment?.name? := `segment
+		iterate each, list
+			segments?.segment?.base? := segments?.each?.base?
+			indx %%
+			segments?.segment?.top? := segments?.each?.top?
+			if defined segments?.each?.high?
+				segments?.segment?.high? := segments?.each?.high?
+			end if
+			break
+		end iterate
+		segments?.segment?.length? := segments?.segment?.top? - segments?.segment?.base?
+	else
+		err 'merge syntax error'
+	end match
+end macro
 
 ; iterate through the segment list
 irpv segment, segments?
@@ -230,9 +249,9 @@ postpone ?
 		; skip segments that aren't emitted
 		if ~defined segment.high
 			; iterate through each block in that segment
-			irpv entry, segment.list?
+			irpv each, segment.list?
 				; grab each var in its original context
-				match area base top, entry
+				match area base top, each
 					; iterate through each byte
 					repeat top - base, addr: base
 						; read the next byte
