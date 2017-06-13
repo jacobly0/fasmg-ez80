@@ -2,83 +2,107 @@
 include 'ez80.inc'
 
 ; create a global namespace
-global? = 0
-; create a segments namespace
-segments? equ
-namespace segments?
-	; initialize the start of each segment
-	code? = 0D1A881h
-	data? = code.top
-	text? = data.top
-	strsect? = text.top
-	bss? = 0D031F6h
-	discard? = 0
+global?::
 
-	; create a list of all the segments
-	segments. reequ code?
-	segments.   equ data?
-	segments.   equ text?
-	segments.   equ strsect?
-	segments.   equ bss?
-	segments.   equ discard?
+macro symbol? args&
+	rmatch var == val, args
+		namespace segments?
+			global?.var = val
+		end namespace
+	else
+		err 'define syntax error'
+	end rmatch
+end macro
+macro range? args&
+	match first =, second, args
+		range? first
+		range? second
+	else match name lower : upper, args
+		segments? equ segments?.name?
+		segments?.name?::
+		segments?.name?.base? := lower
+		segments?.name?.high? := upper
+	else
+		err 'range syntax error'
+	end match
+end macro
+macro locate? args&
+	match name =at? val, args
+		segments? equ segments?.name?
+		segments?.name?::
+		segments?.name?.base? := val
+	else
+		err 'locate syntax error'
+	end match
+end macro
+macro order? args&
+	match first =, second =, third, args
+		order? first, second
+		order? second, third
+	else match first =, second, args
+		segments? equ segments?.second?
+		segments?.second?::
+		segments?.second?.base? := segments?.first?.top?
+	else
+		err 'order syntax error'
+	end match
+end macro
 
-	; this is run at every segment change
-	macro prolog name
-		namespace segments?
-			; raw match to change the context of the
-			; segment name into this namespace
-			rmatch rname, name
-				current reequ rname?
-			end rmatch
-			; create a virtual block for the code/data
-			virtual at current
-		end namespace
-	end macro
-	; this is run before the next segment change
-	macro epilog
-		; we need to remember the output area, start, and end of
-		; this partial segment so that it can be emitted later,
-		; so create unique vars to store this information
-		local area, base, top
-		namespace segments?
-				; match to expand the symbolic var current to
-				; the actual name
-				match segment, current
-				area::
-					base = $$
-					top = $
-					; update the current location in the segment
-					segment = top
-					; store links to the local vars in a list
-					; associated with the segment
-					segment.list? equ area base top
-				end match
-			end virtual
-		end namespace
-	end macro
-end namespace
 ; iterate through the segment list
 irpv segment, segments?
-	; remember where each segment starts
-	segment.base? := segment
+	; initialize each segment to its base
+	segment.current = segment.base
 end irpv
 
 ; ignore directive specifying the originating source file
 macro file? name
 end macro
+; this is run at every segment change
+macro segments?.prolog name
+	namespace segments?
+		; raw match to change the context of the
+		; segment name into this namespace
+		rmatch rname, name
+			current reequ rname
+			; create a virtual block for the code/data
+			virtual at rname.current
+		end rmatch
+	end namespace
+end macro
+; this is run before the next segment change
+macro segments?.epilog
+	; we need to remember the output area, start, and end of
+	; this partial segment so that it can be emitted later,
+	; so create unique vars to store this information
+	local area, base, top
+	namespace segments?
+			; match to expand the symbolic var current to
+			; the actual name
+			match segment, current
+			area::
+				base = $$
+				top = $
+				; update the current location in the segment
+				segment.current = top
+				; store links to the local vars in a list
+				; associated with the segment
+				segment.list? equ area base top
+			end match
+		end virtual
+	end namespace
+end macro
 ; implement segment change as...
 macro segment? name
-	namespace segments?
-		; ...closing the previous segment...
-		epilog
-		; ...and opening the new one
-		prolog name
-	end namespace
+	; ...closing the previous segment...
+	segments?.epilog
+	; ...and opening the new one
+	segments?.prolog name?
 end macro
 ; emit 3 byte values
 macro dw24? vals
 	emit 3: vals
 end macro
+; implement external references by...
 macro xref? arg
 	match name : space, arg
 		; ...ignoring any specified space, and...
@@ -104,7 +128,12 @@ end macro
 ; FIXME: technically this should skip it with an
 ; if 0, but I'm not sure how to conditionally end if
 macro end?!
-	segment discard
+	macro segments?.epilog!
+		end if
+		purge segments?.epilog
+		segments?.epilog
+	end macro
+		if 0
 end macro
 ; hack to make end by itself look like "end." activating
 ; the previous macro, and make end <ident> look like
@@ -118,7 +147,7 @@ match any, files?
 	; iterate through all of the input files
 	iterate file, any
 		; create a namespace named after this input file
-		file = 0
+		file::
 		namespace file
 			; luckily for us, .assume is the only dot-prefixed
 			; directive, and it always appears before any labels,
@@ -128,7 +157,10 @@ match any, files?
 			end macro
 			; set the default segment, and open
 			; for the next segment change
-			segments?.prolog CODE
+			irpv segment, segments?
+				segments?.prolog segment
+				break
+			end irpv
 			; parse this input file
 			include `file
 			; close for the the last segment change
@@ -140,16 +172,12 @@ end match
 ; iterate through the segment list
 irpv segment, segments?
 	; remember the end and length of each segment
-	segment.top? := segment
+	segment.top? := segment.current
 	segment.length? := segment.top - segment.base
 end irpv
 ; wait until everything else is assmebled before
 ; emitting the output file
 postpone ?
-	; trim the segments that shouldn't be emitted
-	repeat 2
-		restore segments?
-	end repeat
 	; compute the output program length...
 	length = 0
 	; ...by iterating through all the segments...
@@ -168,9 +196,11 @@ postpone ?
 	org 0
 	dw 13, 2 + 2 + length
 	db 6
-	match any, name?
+	if defined name? & name? eqtype ''
+		dq name?
+	else match any, name?
 		dq `any
-	else ; if no name specified
+	else
 		dq 'A'
 	end match
 	dw 0, 2 + 2 + length, 2 + length, 7BEFh
