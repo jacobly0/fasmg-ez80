@@ -42,12 +42,57 @@ end namespace
 irpv segment, segments?
 	segment.base? := segment
 end irpv
-postpone
-	irpv segment, segments?
-		segment.top? := segment
-		segment.length? := segment.top - segment.base
-	end irpv
-end postpone
+
+macro file? name
+end macro
+macro segment? name
+	namespace segments?
+		epilog
+		prolog name
+	end namespace
+end macro
+macro dw24? vals
+	emit 3: vals
+end macro
+macro xref? arg
+	match name : space, arg
+		xref? name
+	else
+		arg := global?.arg
+	end match
+end macro
+macro xdef? arg
+	match name : space, arg
+		xdef? name
+	else
+		global?.arg := arg
+	end match
+end macro
+macro end?!
+	segment discard
+end macro
+macro end?! name
+	end.name
+end.macro
+
+match any, files?
+	iterate file, any
+		file = 0
+		namespace file
+			macro .assume? mode&
+				assume? mode
+			end macro
+			segments?.prolog CODE
+			include `file
+			segments?.epilog
+		end namespace
+	end iterate
+end match
+
+irpv segment, segments?
+	segment.top? := segment
+	segment.length? := segment.top - segment.base
+end irpv
 postpone ?
 	restore segments? ; don't emit discard
 	restore segments? ; don't emit bss
@@ -84,48 +129,3 @@ postpone ?
 	end irpv
 	dw checksum
 end postpone
-
-macro file? name
-end macro
-macro segment? name
-	namespace segments?
-		epilog
-		prolog name
-	end namespace
-end macro
-macro dw24? vals
-	emit 3: vals
-end macro
-macro xref? arg
-	match name : space, arg
-		xref? name
-	else
-		arg = global?.#arg
-	end match
-end macro
-macro xdef? arg
-	match name : space, arg
-		xdef? name
-	else
-		global?.#arg = arg
-	end match
-end macro
-macro end?!
-	segment discard
-end macro
-macro end?! name
-	end.name
-end.macro
-
-match any, files?
-	iterate file, any
-		file = 0
-		namespace file
-			macro .assume? mode
-			end macro
-			segments?.prolog CODE
-			include `file
-			segments?.epilog
-		end namespace
-	end iterate
-end match
