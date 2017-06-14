@@ -316,7 +316,7 @@ inst jq
 		  & cnd metadata 1 element 1 relativeto ez80.b \
 		  & cnd metadata 1 scale 0 and 007o = 001o     \
 		  & cnd metadata 1 scale 0 < 040o
-			if ~off
+			if defined after & adr = after
 				noerr = 1
 			else if -200o <= off & off < 200o
 				db cnd metadata 1 scale 0 and 030o + 040o, off
@@ -331,7 +331,7 @@ inst jq
 			adr = a
 		end virtual
 		off = adr - before - ez80.presize - 2
-		if ~off
+		if defined after & adr = after
 			noerr = 1
 		else if -200o <= off & off < 200o
 			db 030o, off
