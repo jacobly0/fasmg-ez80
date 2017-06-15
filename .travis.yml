@@ -1,0 +1,25 @@
+language: generic
+
+before_install:
+  - sudo apt-get update -qq
+
+install:
+  - sudo apt-get install -y --force-yes -qq libc6-i386
+
+before_script:
+  - wget --no-verbose https://flatassembler.net/fasmg.zip --output-document=/tmp/fasmg.zip
+  - unzip -o /tmp/fasmg.zip fasmg
+  - chmod +x fasmg
+  - export PATH="$PATH:$PWD"
+  - wget --no-verbose 'http://wikiti.brandonw.net/index.php?title=84PCE:OS:Include_File&action=raw' --output-document=- | sed -e '/\[\[.*\]\]/d;s/<\/\?pre>//' > ti84pce.inc
+
+script:
+  - tests/test
+
+notifications:
+  irc:
+    channels:
+      - "irc.choopa.net#ez80-dev"
+    on_success: change
+    on_failure: always
+    skip_join: true
