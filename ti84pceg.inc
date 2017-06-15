@@ -49,6 +49,7 @@ end macro
 macro #endif?
 end macro
 
+element anovaf_vars?
 include 'ti84pce.inc'
 
 restruc equ?
