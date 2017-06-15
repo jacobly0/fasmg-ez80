@@ -303,7 +303,7 @@ inst jr
 	end match
 end inst
 inst jq
-	local cnd, adr, off
+	local cnd, adr, off, bad
 	match ( c ) =, a, args
 	else match c =, ( a ), args
 	else match c =, a, args
@@ -316,7 +316,10 @@ inst jq
 		  & cnd metadata 1 element 1 relativeto ez80.b \
 		  & cnd metadata 1 scale 0 and 007o = 001o     \
 		  & cnd metadata 1 scale 0 < 040o
-			if defined after & adr = after
+			if defined noerr & adr <> after | defined bad
+				bad = 1
+			end if
+			if defined after & adr = after & ~defined bad
 				noerr = 1
 			else if -200o <= off & off < 200o
 				db cnd metadata 1 scale 0 and 030o + 040o, off
@@ -331,7 +334,10 @@ inst jq
 			adr = a
 		end virtual
 		off = adr - before - ez80.presize - 2
-		if defined after & adr = after
+		if defined noerr & adr <> after | defined bad
+			bad = 1
+		end if
+		if defined after & adr = after & ~defined bad
 			noerr = 1
 		else if -200o <= off & off < 200o
 			db 030o, off
