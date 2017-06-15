@@ -1,8 +1,25 @@
 include 'ez80.inc'
-	jq	$
-	jq	$ + 1
-	jq	$ + $81
-	jq	$ + $82
+macro test jump, cond&
+	iterate offset, -$81, -$80, -2, -1, 0, 1, $7f, $80
+		if -$80 <= offset & offset < $80 | `jump <> 'jr'
+			jump cond $ + 2 + offset
+		else
+			jp cond $ + 2 + offset
+		end if
+	end iterate
 
-	jq	lab
-lab:	jq	lab
+	local	lab
+	jump	cond lab
+lab:	jump	cond lab
+	jump	cond lab
+end macro
+iterate jump, jr, jp, jq
+	iterate cond, <>, <nz, >, <z, >, <nc, >, <c, >
+		test jump, cond
+	end iterate
+	if `jump <> 'jr'
+		iterate cond, <po, >, <pe, >, <p, >, <m, >
+			test jump, cond
+		end iterate
+	end if
+end iterate

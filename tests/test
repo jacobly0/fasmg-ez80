@@ -1,7 +1,7 @@
 #!/bin/bash
 for test in "$(dirname "$0")"/*.asm; do
 	test="${test%.asm}"
-	if fasmg -v 1 "$test.asm" "$test.out" && diff "$test.out" "$test.bin" >/dev/null; then
+	if fasmg -v 1 -e 9999 "$test.asm" "$test.out" && diff "$test.out" "$test.bin" >/dev/null; then
 		echo -e "\e[32m$test passed.\e[37m"
 	else
 		echo -e "\e[31m$test failed.\e[37m"

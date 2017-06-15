@@ -1,4 +1,4 @@
-define ez80
+define ez80 ez80
 
 macro ez80.word value
 	emit word + ez80.il : value
@@ -311,20 +311,19 @@ inst jq
 			cnd = c
 			adr = a
 		end virtual
-		off = adr - before - ez80.presize - 2
 		if ~cnd scale 0 & cnd relativeto cnd element 1 \
 		  & cnd metadata 1 element 1 relativeto ez80.b \
-		  & cnd metadata 1 scale 0 and 007o = 001o     \
-		  & cnd metadata 1 scale 0 < 040o
+		  & cnd metadata 1 scale 0 and 007o = 001o
+			off = adr - before - ez80.presize - 2
 			if defined noerr & adr <> after | defined bad
 				bad = 1
 			end if
 			if defined after & adr = after & ~defined bad
 				noerr = 1
-			else if -200o <= off & off < 200o
+			else if cnd metadata 1 scale 0 < 040o & -200o <= off & off < 200o
 				db cnd metadata 1 scale 0 and 030o + 040o, off
 			else
-				db cnd metadata 1 scale 0 and 030o + 302o
+				db cnd metadata 1 scale 0 and 070o + 302o
 				ez80.word adr
 			end if
 		end if
