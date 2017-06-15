@@ -1,10 +1,11 @@
+sudo: false
+
 language: generic
 
-before_install:
-  - sudo apt-get update -qq
-
-install:
-  - sudo apt-get install -y --force-yes -qq libc6-i386
+addons:
+  apt:
+    packages:
+      - libc6-i386
 
 before_script:
   - wget --no-verbose https://flatassembler.net/fasmg.zip --output-document=/tmp/fasmg.zip
