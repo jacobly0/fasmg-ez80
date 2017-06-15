@@ -1,5 +1,19 @@
 define ez80 ez80
 
+macro ez80.offset value
+	local v
+	v = value
+	if v < -200o
+		repeat 1, v:-v
+			err 'Signed byte offset -', `v, ' out of range'
+		end repeat
+	else if 200o <= v
+		repeat 1, v:v
+			err 'Signed byte offset ',  `v, ' out of range'
+		end repeat
+	end if
+	db v
+end macro
 macro ez80.word value
 	emit word + ez80.il : value
 end macro
@@ -23,7 +37,7 @@ struc rl? defs&
 end struc
 
 macro assume? expr&
-	local v
+	local val
 	match =adl? == v, expr
 		val = v
 		if val and 1 = val
@@ -202,9 +216,8 @@ iterate name, inc, dec
 			 & adr metadata 1 element 1 relativeto ez80.w \
 			 & adr metadata 1 scale 0 = 040o
 				if adr metadata 1 scale 1 and not 007o
-					if -200o <= adr scale 0 & adr scale 0 < 200o
-						db adr metadata 1 scale 1, % + 063o, adr scale 0
-					end if
+					db adr metadata 1 scale 1, % + 063o
+					ez80.offset adr scale 0
 				else if ~adr scale 0
 					db % + 063o
 				end if
@@ -268,10 +281,8 @@ inst djnz
 		virtual at before - ez80.presize
 			off = a
 		end virtual
-		off = off - after
-		if -200o <= off & off < 200o
-			db 020o, off
-		end if
+		db 020o
+		ez80.offset off - after
 	end match
 end inst
 inst jr
@@ -283,23 +294,20 @@ inst jr
 			cnd = c
 			off = a
 		end virtual
-		off = off - after
 		if ~cnd scale 0 & cnd relativeto cnd element 1 \
 		  & cnd metadata 1 element 1 relativeto ez80.b \
 		  & cnd metadata 1 scale 0 and 007o = 001o     \
-		  & cnd metadata 1 scale 0 < 040o              \
-		  & -200o <= off & off < 200o
-			db cnd metadata 1 scale 0 and 030o + 040o, off
+		  & cnd metadata 1 scale 0 < 040o
+			db cnd metadata 1 scale 0 and 030o + 040o
+			ez80.offset off - after
 		end if
 	else match ( a ), args
 	else match a, args
 		virtual at before - ez80.presize
 			off = a
 		end virtual
-		off = off - after
-		if -200o <= off & off < 200o
-			db 030o, off
-		end if
+		db 030o
+		ez80.offset off - after
 	end match
 end inst
 inst jq
@@ -364,11 +372,9 @@ inst ld
 					 & dst metadata 1 scale 0 and 070o = 030o     \
 					 & dst metadata 1 scale 1 = 1
 						if src metadata 1 scale 1 and not 007o
-							if -200o <= src scale 0 & src scale 0 < 200o
-								db src metadata 1 scale 1,                       \
-								   dst metadata 1 scale 0 shl 3 and 070o + 106o, \
-								   src scale 0
-							end if
+							db src metadata 1 scale 1,                      \
+							   dst metadata 1 scale 0 shl 3 and 070o + 106o
+							ez80.offset src scale 0
 						else
 							db dst metadata 1 scale 0 shl 3 and 070o + 106o
 						end if
@@ -380,9 +386,8 @@ inst ld
 							         xor dst metadata 1 scale 1) shr 5 and 1
 						end if
 						if src metadata 1 scale 1 and not 007o
-							if -200o <= src scale 0 & src scale 0 < 200o
-								db src metadata 1 scale 1, code, src scale 0
-							end if
+							db src metadata 1 scale 1, code
+							ez80.offset src scale 0
 						else if ~src scale 0
 							db 355o, code
 						end if
@@ -425,11 +430,9 @@ inst ld
 						 & src metadata 1 scale 0 and 070o = 030o     \
 						 & src metadata 1 scale 1 = 1
 							if dst metadata 1 scale 1 and not 007o
-								if -200o <= dst scale 0 & dst scale 0 < 200o
-									db dst metadata 1 scale 1,                 \
-									   src metadata 1 scale 0 and 007o + 160o, \
-									   dst scale 0
-								end if
+								db dst metadata 1 scale 1,                \
+								   src metadata 1 scale 0 and 007o + 160o
+								ez80.offset dst scale 0
 							else
 								db src metadata 1 scale 0 and 007o + 160o
 							end if
@@ -437,13 +440,12 @@ inst ld
 						      & src metadata 1 scale 1 and 005o = 005o
 							code = src metadata 1 scale 0 + 017o
 							if src metadata 1 scale 1 and not 007o
-								code = code + 020o - (dst metadata 1 scale 1 \
-								         xor src metadata 1 scale 1) shr 5 and 1
+								code = code + 020o - (dst metadata 1 scale 1   \
+								   xor src metadata 1 scale 1) shr 5 and 1
 							end if
 							if dst metadata 1 scale 1 and not 007o
-								if -200o <= dst scale 0 & dst scale 0 < 200o
-									db dst metadata 1 scale 1, code, dst scale 0
-								end if
+								db dst metadata 1 scale 1, code
+								ez80.offset dst scale 0
 							else if ~dst scale 0
 								db 355o, code
 							end if
@@ -456,9 +458,9 @@ inst ld
 			      & dst metadata 1 element 1 relativeto ez80.w \
 				  & dst metadata 1 scale 0 = 040o
 				if dst metadata 1 scale 1 and not 007o
-					if -200o <= dst scale 0 & dst scale 0 < 200o
-						db dst metadata 1 scale 1, 066o, dst scale 0, src
-					end if
+					db dst metadata 1 scale 1, 066o
+					ez80.offset dst scale 0
+					db src
 				else
 					db 066o, src
 				end if
@@ -554,9 +556,8 @@ inst add
 		 & adr metadata 1 element 1 relativeto ez80.w \
 		 & adr metadata 1 scale 0 = 040o
 			if adr metadata 1 scale 1 and not 007o
-				if -200o <= adr scale 0 & adr scale 0 < 200o
-					db adr metadata 1 scale 1, 206o, adr scale 0
-				end if
+				db adr metadata 1 scale 1, 206o
+				ez80.offset adr scale 0
 			else if ~adr scale 0
 				db 206o
 			end if
@@ -611,9 +612,8 @@ iterate name, adc, sbc
 			 & adr metadata 1 element 1 relativeto ez80.w \
 			 & adr metadata 1 scale 0 = 040o
 				if adr metadata 1 scale 1 and not 007o
-					if -200o <= adr scale 0 & adr scale 0 < 200o
-						db adr metadata 1 scale 1, % shl 4 + 176o, adr scale 0
-					end if
+					db adr metadata 1 scale 1, % shl 4 + 176o
+					ez80.offset adr scale 0
 				else if ~adr scale 0
 					db % shl 4 + 176o
 				end if
@@ -661,9 +661,8 @@ iterate <name*, code*>, sub, 020o, and, 040o, xor, 050o, or, 060o, cp, 070o
 			 & adr metadata 1 element 1 relativeto ez80.w \
 			 & adr metadata 1 scale 0 = 040o
 				if adr metadata 1 scale 1 and not 007o
-					if -200o <= adr scale 0 & adr scale 0 < 200o
-						db adr metadata 1 scale 1, code + 206o, adr scale 0
-					end if
+					db adr metadata 1 scale 1, code + 206o
+					ez80.offset adr scale 0
 				else if ~adr scale 0
 					db code + 206o
 				end if
@@ -816,10 +815,9 @@ iterate name, srl, rlc, rrc, rl, rr, sla, sra
 			 & adr metadata 1 element 1 relativeto ez80.w \
 			 & adr metadata 1 scale 0 = 040o
 				if adr metadata 1 scale 1 and not 007o
-					if -200o <= adr scale 0 & adr scale 0 < 200o
-						db adr metadata 1 scale 1, 313o, adr scale 0, \
-						   ((% - 2) and 007o) shl 3 + 006o
-					end if
+					db adr metadata 1 scale 1, 313o
+					ez80.offset adr scale 0
+					db ((% - 2) and 007o) shl 3 + 006o
 				else if ~adr scale 0
 					db 313o, ((% - 2) and 007o) shl 3 + 006o
 				end if
@@ -859,10 +857,9 @@ iterate name, bit, res, set
 					 & adr metadata 1 element 1 relativeto ez80.w \
 					 & adr metadata 1 scale 0 = 040o
 						if adr metadata 1 scale 1 and not 007o
-							if -200o <= adr scale 0 & adr scale 0 < 200o
-								db adr metadata 1 scale 1, 313o,  \
-								   adr scale 0, imm + 006o
-							end if
+							db adr metadata 1 scale 1, 313o
+							ez80.offset adr scale 0
+							db imm + 006o
 						else if ~adr scale 0
 							db 313o, imm + 006o
 						end if
@@ -988,16 +985,17 @@ inst lea
 		  & dst metadata 1 element 1 relativeto ez80.w \
 		  & src metadata 1 element 1 relativeto ez80.w \
 		  & dst metadata 1 scale 0 <> 060o             \
-		  & src metadata 1 scale 1 and not 007o        \
-		  & -200o <= src scale 0 & src scale 0 < 200o
+		  & src metadata 1 scale 1 and not 007o
+			db 355o
 			if dst metadata 1 scale 1 and 002o
-				db 355o, src metadata 1 scale 1 shr 5 and 1 \
-				 + dst metadata 1 scale 0 + 002o, src scale 0
+				db src metadata 1 scale 1 shr 5 and 1 \
+				 + dst metadata 1 scale 0 + 002o
 			else if dst relativeto src
-				db 355o, dst metadata 1 scale 1 shr 5 and 1 + 062o, src scale 0
+				db dst metadata 1 scale 1 shr 5 and 1 + 062o
 			else
-				db 355o, dst metadata 1 scale 1 shr 5 and 1 + 124o, src scale 0
+				db dst metadata 1 scale 1 shr 5 and 1 + 124o
 			end if
+			ez80.offset src scale 0
 		end if
 	end match
 end inst
@@ -1067,9 +1065,9 @@ inst pea
 		end virtual
 		if reg relativeto reg element 1               \
 		 & reg metadata 1 element 1 relativeto ez80.w \
-		 & reg metadata 1 scale 1 and not 007o        \
-		 & -200o <= reg scale 0 & reg scale 0 < 200o
-			db 355o, reg metadata 1 scale 1 shr 5 and 1 + 145o, reg scale 0
+		 & reg metadata 1 scale 1 and not 007o
+			db 355o, reg metadata 1 scale 1 shr 5 and 1 + 145o
+			ez80.offset reg scale 0
 		end if
 	end match
 end inst
