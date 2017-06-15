@@ -5,7 +5,9 @@ $s/$/\nend namespace/
 s/^[#.][^\n]*//
 s/^_//
 s/\(boot\|os\)_/\1./g
-s/^Ld/Lsmalld/
+s/^Ld	/Lsmalld	/
+s/^ret /DoNothing /
+s/anovaf_vars/0/
 s/\([ 	]\)equ\([ 	]\)/\1=\2/
 s/ \?| \?/ or /g
 s/ \?& \?/ and /g

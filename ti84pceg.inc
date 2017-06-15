@@ -1,47 +1,61 @@
+macro private
+	; assign needs to be local so that it is only
+	; defined once (no purge!) so that it can be
+	; forward referenced so that it can recurse
+	local assign
+	macro assign name*, expr&
+		match left =% right, expr
+			assign name, left mod right
+		else match left =| right, expr
+			assign name, left or right
+		else match left =& right, expr
+			assign name, left and right
+		else match left =^ right, expr
+			assign name, left xor right
+		else match left =<=< right, expr
+			assign name, left shl right
+		else match left =>=> right, expr
+			assign name, left shr right
+		else match left =~ right, expr
+			assign name, left not right
+		else match =~ right, expr
+			assign name, not right
+		else
+			name? = expr
+		end match
+	end macro
+	struc (name) equ? expr&
+		assign name, expr
+	end struc
+	macro Ld args&
+		match =equ? expr, args
+			assign name, expr
+		end match
+	end macro
+end macro
+private
+purge private
+
 macro .list?
 end macro
 macro .nolist?
 end macro
-macro #ifdef? any&
+macro #define? name
 end macro
-macro #ifndef? any&
+macro #ifdef? name
+end macro
+macro #ifndef? name
 end macro
 macro #endif?
-end macro
-macro #define? any&
-end macro
-macro assign var, val&
-	     match left & right, val
-		assign var, left and right
-	else match left | right, val
-		assign var, left or right
-	else match left =^ right, val
-		assign var, left xor right
-	else match left << right, val
-		assign var, left shl right
-	else match left >> right, val
-		assign var, left shr right
-	else
-		var = val
-	end match
-end macro
-struc equ? val&
-	assign ., val
-end struc
-macro Ld args&
-	match =equ? val, args
-		assign Ld, val
-	end match
 end macro
 
 include 'ti84pce.inc'
 
-purge Ld
 restruc equ?
-purge assign
-purge #define?
-purge #endif?
-purge #ifndef?
-purge #ifdef?
-purge .nolist?
+purge Ld
 purge .list?
+purge .nolist?
+purge #define?
+purge #ifdef?
+purge #ifndef?
+purge #endif?
