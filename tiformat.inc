@@ -79,10 +79,12 @@ macro format? clause
 			org address
 		end macro
 		org 0D1A881h
-		postpone
-			format.ti.checkloc = $%
+		postpone ?
 			org $ ; compute checksum
 			dw format.ti.checksum
+		end postpone
+		postpone
+			format.ti.checkloc = $%
 		end postpone
 		purge format?
 	else
