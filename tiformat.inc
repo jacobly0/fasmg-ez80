@@ -72,7 +72,7 @@ macro format? clause
 		end namespace
 		macro org? address
 			local a
-			repeat $ - $$, loc : $$
+			repeat $@ - $$, loc : $$
 				load a : byte from loc
 				format.ti.checksum = (format.ti.checksum + a) and 0FFFFh
 			end repeat
