@@ -102,6 +102,9 @@ end irpv
 ; ignore directive specifying the originating source file
 macro file? name
 end macro
+; ignore directive specifying the target cpu
+macro cpu? name
+end macro
 ; this is run at every segment change
 macro segments?.prolog name
 	namespace segments?
@@ -147,13 +150,39 @@ macro segment? name
 	; ...and opening the new one
 	segments?.prolog name?
 end macro
+macro align? @val*
+	local val
+	val = @val
+	rb val-1 - ($ + val-1) mod val
+end macro
+macro ds? val*
+	rb val
+end macro
 ; emit 3 byte values
 macro dw24? vals
 	emit 3: vals
 end macro
-macro ds? val
-	rb val
+macro dw24? @args&
+	emit 3: @args
 end macro
+macro dl? @args&
+	dd @args
+end macro
+macro df? @args&
+	dd @args
+end macro
+iterate <@src,@dst*>, b,b, w,w, p,w24, l,l
+	macro blk#@src? @cnt*, @val
+		local cnt, val
+		cnt = @cnt
+		match any, val
+			val = @val
+		else
+			val equ ?
+		end match
+		d#@dst cnt dup val
+	end macro
+end iterate
 ; implement external references by...
 macro xref? arg
 	match name : space, arg
