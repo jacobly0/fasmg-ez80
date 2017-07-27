@@ -1,6 +1,6 @@
 sudo: false
 
-language: generic
+language: cpp
 
 os:
   - linux
@@ -11,10 +11,13 @@ addons:
     packages:
       - libc6-i386
 
+before_install:
+  - export PATH="$PATH:$PWD/bin"
+  - if [[ "$TRAVIS_OS_NAME" = osx ]]; then rvm get stable; fi
+
 before_script:
-  - export PATH="$PATH:$PWD"
-  - ./install_fasmg
-  - wget --no-verbose 'http://wikiti.brandonw.net/index.php?title=84PCE:OS:Include_File&action=raw' --output-document=- | sed -e '/\[\[.*\]\]/d;s/<\/\?pre>//' > ti84pce.inc
+  - install_fasmg
+  - fetch_ti84pce
 
 script:
   - tests/test
