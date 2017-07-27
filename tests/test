@@ -5,12 +5,12 @@ total=0
 for test in "$(dirname "$0")"/*.asm; do
 	test="${test%.asm}"
 	if fasmg -v 1 -e 9999 "$test.asm" "$test.out" && diff "$test.out" "$test.bin" >/dev/null; then
-		echo -e "\e[32m$test passed.\e[m"
+		printf "\e[32m$test passed.\e[m\n"
 		((passed++))
 	else
-		echo -e "\e[31m$test failed.\e[m"
+		printf "\e[31m$test failed.\e[m\n"
 		((failed++))
 	fi
 done
-echo -e "===\e[32m $passed tests passed \e[31m $failed tests failed \e[m==="
+printf "===\e[32m $passed tests passed \e[31m $failed tests failed \e[m===\n"
 ((failed == 0))

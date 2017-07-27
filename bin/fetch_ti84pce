@@ -1,2 +1,2 @@
-#!/bin/bash -e
-wget --no-verbose 'http://wikiti.brandonw.net/index.php?title=84PCE:OS:Include_File&action=raw' --output-document=- | sed -e '/\[\[.*\]\]/d;s/<\/\?pre>//' > ti84pce.inc
+#!/bin/bash -ex
+wget --no-verbose 'http://wikiti.brandonw.net/index.php?title=84PCE:OS:Include_File&action=raw' --output-document=- | sed -E '/^\[\[.*\]\]$/d;s|</?pre>||' > ti84pce.inc

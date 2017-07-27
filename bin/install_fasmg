@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 wget --no-verbose https://flatassembler.net/fasmg.zip --output-document=/tmp/fasmg.zip
 case "$TRAVIS_OS_NAME" in
     linux)  unzip -od bin /tmp/fasmg.zip fasmg ;;

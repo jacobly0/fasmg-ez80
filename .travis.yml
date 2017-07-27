@@ -12,7 +12,7 @@ addons:
       - libc6-i386
 
 before_install:
-  - export PATH="$PATH:$PWD/bin"
+  - export PATH="$PATH:$PWD/bin" PS4="$ "
   - if [[ "$TRAVIS_OS_NAME" = osx ]]; then rvm get stable; fi
 
 before_script:
