@@ -1,0 +1,392 @@
+define ez80 ez80
+namespace ez80
+	include 'ez80.inc'
+end namespace
+macro import pc       : $        , \
+             $$       : $$       , \
+             and      : and      , \
+             at       : at       , \
+             break    : break    , \
+             define   : define   , \
+             defined  : defined  , \
+             display  : display  , \
+             dup      : dup      , \
+             else     : else     , \
+             emit     : emit     , \
+             end      : end      , \
+             equ      : equ      , \
+             err      : err      , \
+             eval     : eval     , \
+             ez80     : ez80     , \
+             from     : from     , \
+             if       : if       , \
+             include  : include  , \
+             irpv     : irpv     , \
+             iterate  : iterate  , \
+             label    : label    , \
+             lengthof : lengthof , \
+             load     : load     , \
+             local    : local    , \
+             macro    : macro    , \
+             match    : match    , \
+             mod      : mod      , \
+             namespace: namespace, \
+             purge    : purge    , \
+             rb       : rb       , \
+             reequ    : reequ    , \
+             repeat   : repeat   , \
+             restore  : restore  , \
+             rmatch   : rmatch   , \
+             segment  : segment  , \
+             shl      : shl      , \
+             shr      : shr      , \
+             store    : store    , \
+             struc    : struc    , \
+             virtual  : virtual  , \
+             xor      : xor
+	macro parse file
+		local private
+		namespace private
+			$ equ pc
+			iterate name, LIST, NEWPAGE, NOLIST, PAGE
+				macro name?
+				end macro
+			end iterate
+			iterate name, CPU, FILE, TITLE
+				macro name? arg*
+				end macro
+			end iterate
+			iterate name, COPY, INCLUDE
+				macro name? path*
+					include path
+				end macro
+			end iterate
+			iterate name, EXTERN, EXTERNAL, REF, XREF
+				macro name? symbol*
+					extern symbol
+				end macro
+			end iterate
+			iterate name, DEF, GLOBAL, PUBLIC, XDEF
+				macro name? symbol*
+					public symbol
+				end macro
+			end iterate
+			struc (name) EQU? expr*
+				local error
+				if ~defined error & defined name | error
+					err 'Symbol "', `name, '" already defined'
+					error = 1
+				else
+					error = 0
+				end if
+				. = expr
+			end struc
+			iterate name, VAR, SET
+				struc name? expr*
+					. = expr
+				end struc
+			end iterate
+			macro DS? count
+				local c
+				c = count
+				rb c
+			end macro
+			struc DS? count
+			.:	DS? count
+			end struc
+			iterate <def,blk,size*>, B,B,1, W,W,2, W24,P,3, L,L,4
+				macro D#def? vals*&
+					local v
+					iterate val, vals
+						v = val
+						emit size: v
+					end iterate
+				end macro
+				macro BLK#blk? count*, init
+					local c, i
+					c = count
+					match, init
+						emit size: c dup ?
+					else
+						i = init
+						emit size: c dup i
+					end match
+				end macro
+				iterate name, D#def, BLK#blk
+					struc name? args&
+					.:	name? args
+					end struc
+				end iterate
+			end iterate
+			macro ALIGN? val*
+				local v
+				v = val
+				rb v-1 - (pc + v-1) mod v
+			end macro
+			macro SEGMENT? name*
+				segment name
+			end macro
+			irpv name, ez80.@ez80.oplist
+				iterate suffix, , .s, .l, .is, .il, .sis, .sil, .lis, .lil
+					rmatch inst, name#suffix?
+						macro inst args&
+							namespace ez80
+								rmatch forward, args
+									inst forward
+								end rmatch
+							end namespace
+						end macro
+					end rmatch
+				end iterate
+			end irpv
+			macro COMMENT? delim*&
+				end match
+				local inside
+				inside = 0
+				macro ?! line&
+					local length, text
+					length = 0
+					if inside
+						length = lengthof `line
+						text = `line
+					else if `line = 'end match'
+						inside = 1
+						length = lengthof `delim - 1
+						text = `delim shr 8
+					end if
+					repeat length
+						if ~text xor `delim and $FF
+							display `line, 10
+							purge ?
+							break
+						end if
+						text = text shr 8
+					end repeat
+				end macro
+			end macro
+			macro END?!
+				end if
+				if 0
+			end macro
+			macro ? line&
+				match .rest, line
+					rest
+				else match first= .rest, line
+					first rest
+				else
+					line
+				end match
+			end macro
+			if 1
+				include file
+			end if
+			purge ?
+		end namespace
+	end macro
+
+	local global, output, sources, segments, prolog, epilog
+
+	define global global
+	macro extern symbol*
+		symbol := global.symbol
+	end macro
+	macro public symbol*
+		global.symbol := symbol
+	end macro
+	macro symbol? args&
+		iterate arg, args
+			rmatch symbol == value, arg
+				namespace segments
+					global.symbol := value
+				end namespace
+			else
+				'Syntax error in symbol arguments'
+			end rmatch
+		end iterate
+	end macro
+
+	define output output
+	macro name? arg*
+		if `arg and $FF = "'" | `arg and $FF = '"'
+			output.name := arg
+		else
+			output.name := `arg
+		end if
+		if lengthof output.name > 8
+			err 'Progname name "', output.name, '" is too long'
+		end if
+	end macro
+
+	macro files? args&
+		iterate arg, args
+			match first= rest, arg
+				files first
+				files rest
+			else if `arg and $FF = "'" | `arg and $FF = '"'
+				sources =: arg
+			else
+				sources =: `arg
+			end if
+		end iterate
+	end macro
+
+	macro locate? args&
+		iterate arg, args
+			rmatch name =at? location, arg
+				segments equ segments.name?
+				namespace segments
+					name? := `name
+					name.base? := location
+				end namespace
+			else
+				err 'Syntax error in locate argument'
+			end rmatch
+		end iterate
+	end macro
+	macro range? args&
+		iterate arg, args
+			rmatch name lower : upper, arg
+				locate name at lower
+				namespace segments
+					name.high? := upper
+				end namespace
+			else
+				err 'Syntax error in range arguments'
+			end rmatch
+		end match
+	end macro
+	macro order? args&
+		match first =, second =, rest, args
+			order first, second
+			order second, rest
+		else match first =, second, args
+			locate second at first.base + first.length
+		else
+			err 'Not enough order arguments'
+		end match
+	end macro
+	macro merge? args&
+		match name == list, args
+			order list
+			iterate each, list
+				locate name at each.base
+				indx %%
+				namespace segments
+					name.top? := each.base + each.length
+					if defined each.high
+						name.high? := each.high
+					end if
+				end namespace
+				break
+			end iterate
+		else
+			err 'Syntax error in merge arguments'
+		end match
+	end macro
+
+	macro segment name*
+		epilog
+		prolog segments.name
+	end macro
+	macro prolog name*
+		if defined name
+			define segment name
+		else
+			err 'Undefined segment ', `name
+		end if
+		virtual at name.current
+	end macro
+	macro epilog
+		local area, base, length
+			match name, segment
+			area::
+				base = $$
+				length = pc - $$
+				namespace name
+					current = pc
+					parts equ area base length
+				end namespace
+			end match
+		end virtual
+	end macro
+
+	if ~defined output.name
+		err 'Please pass the program name with -i''name "PROGNAME"'''
+	else if ~defined sources
+		err 'Please pass the input files with -i''files "file1" "file2" ...'''
+	else if ~defined segments
+		err 'No segments defined'
+	else
+		irpv each, segments
+			namespace each
+				restore current, parts
+				current = base
+			end namespace
+		end irpv
+		irpv source, sources
+			irpv first, segments
+				prolog first
+					parse source
+				epilog
+				break
+			end irpv
+		end irpv
+		irpv each, segments
+			namespace each
+				top? := current
+				length? := top - base
+			end namespace
+		end irpv
+		postpone ?
+			restore output.base, output.top
+			irpv each, segments
+				namespace each
+					if ~defined high
+						if ~defined output.base | base < output.base
+							output.base = base
+						end if
+						if ~defined output.top | top > output.top
+							output.top = top
+						end if
+					else if top > high
+						repeat 1, len: length, over: top - high, max: high - base
+							err 'Segment ', segment, ' is ', `len, ' bytes, ', \
+							    `over, ' bytes larger than the maximum of ',   \
+							    `max, ' bytes'
+						end repeat
+					end if
+				end namespace
+			end irpv
+			output.length := output.top - output.base
+			dq '**TI83F*'
+			db 26, 10, 0
+			rb 42
+			dw 2 + 13 + 2 + 2 + 2 + output.length
+			org output.base - 21
+			dw 13, 2 + 2 + output.length
+			db 6
+			dq output.name
+			dw 0, 2 + 2 + output.length, 2 + output.length, 7BEFh
+			db output.length dup 0
+			irpv each, segments
+				namespace each
+					if ~defined high
+						irpv part, parts
+							match area base length, part
+								load output.temp: length from area: base
+								store output.temp: length at base
+							end match
+						end irpv
+					end if
+				end namespace
+			end irpv
+			output.checksum = 0
+			repeat $ - $$, addr: $$
+				load output.temp: byte from addr
+				output.checksum = (output.checksum + output.temp) and 0FFFFh
+			end repeat
+			dw output.checksum
+		end postpone
+	end if
+end macro
+import

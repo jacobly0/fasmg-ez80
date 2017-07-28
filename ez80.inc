@@ -149,8 +149,8 @@ element af'?
 @ez80.is_reg equ metadata 1 element 1 eq
 
 macro inst! @name*, @params&
-	define @name? @name?
-	namespace @name?
+	@ez80.oplist equ @name
+	namespace @name
 		macro s? @args&
 			@ez80.suffix 0, @ez80.il
 			@name? @args
