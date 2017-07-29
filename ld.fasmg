@@ -126,18 +126,27 @@ macro import pc       : $        , \
 			macro SEGMENT? name*
 				segment name
 			end macro
+			macro ASSUME? expr*
+				namespace ez80
+					assume? expr
+				end namespace
+			end macro
+			iterate register, B, NZ, Z, NC, C, PO, PE, P, M, D, E,  \
+			                  H, IXH, IYH, L, IXL, IYL, F, A, I, R, \
+			                  MB, BC, DE, HL, IX, IY, SP, AF, AF'
+				register? := ez80.register?
+			end iterate
 			irpv name, ez80.@ez80.oplist
-				iterate suffix, , .s, .l, .is, .il, .sis, .sil, .lis, .lil
-					rmatch inst, name#suffix?
-						macro inst args&
+				rmatch rname, name
+					define rname rname
+					iterate suffix, , .s?, .l?, .is?, .il?, .sis?, .sil?, .lis?, .lil?
+						macro rname#suffix args&
 							namespace ez80
-								rmatch forward, args
-									inst forward
-								end rmatch
+								name#suffix args
 							end namespace
 						end macro
-					end rmatch
-				end iterate
+					end iterate
+				end rmatch
 			end irpv
 			macro COMMENT? delim*&
 				end match
@@ -206,6 +215,15 @@ macro import pc       : $        , \
 	end macro
 
 	define output output
+	macro format? arg*
+		match =bin?, arg
+			output.format = 0
+		else match =8xp?, arg
+			output.format = 1
+		else
+			err 'Unknown format ', `arg, 10
+		end match
+	end macro
 	macro name? arg*
 		if `arg and $FF = "'" | `arg and $FF = '"'
 			output.name := arg
@@ -310,8 +328,10 @@ macro import pc       : $        , \
 		end virtual
 	end macro
 
-	if ~defined output.name
-		err 'Please pass the program name with -i''name "PROGNAME"'''
+	if ~defined output.format
+		err 'Please pass the output format with -i''format bin|8xp'''
+	else if output.format & ~defined output.name
+		err 'Please pass the output program name with -i''name "PROGNAME"'''
 	else if ~defined sources
 		err 'Please pass the input files with -i''files "file1" "file2" ...'''
 	else if ~defined segments
@@ -358,15 +378,19 @@ macro import pc       : $        , \
 				end namespace
 			end irpv
 			output.length := output.top - output.base
-			dq '**TI83F*'
-			db 26, 10, 0
-			rb 42
-			dw 2 + 13 + 2 + 2 + 2 + output.length
-			org output.base - 21
-			dw 13, 2 + 2 + output.length
-			db 6
-			dq output.name
-			dw 0, 2 + 2 + output.length, 2 + output.length, 7BEFh
+			if output.format
+				dq '**TI83F*'
+				db 26, 10, 0
+				rb 42
+				dw 2 + 13 + 2 + 2 + 2 + output.length
+				org output.base - 21
+				dw 13, 2 + 2 + output.length
+				db 6
+				dq output.name
+				dw 0, 2 + 2 + output.length, 2 + output.length, 7BEFh
+			else
+				org output.base
+			end if
 			db output.length dup 0
 			irpv each, segments
 				namespace each
@@ -380,13 +404,16 @@ macro import pc       : $        , \
 					end if
 				end namespace
 			end irpv
-			output.checksum = 0
-			repeat $ - $$, addr: $$
-				load output.temp: byte from addr
-				output.checksum = (output.checksum + output.temp) and 0FFFFh
-			end repeat
-			dw output.checksum
+			if output.format
+				output.checksum = 0
+				repeat $ - $$, addr: $$
+					load output.temp: byte from addr
+					output.checksum = (output.checksum + output.temp) and 0FFFFh
+				end repeat
+				dw output.checksum
+			end if
 		end postpone
 	end if
 end macro
 import
+purge import
