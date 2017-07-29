@@ -204,7 +204,7 @@ macro import pc       : $        , \
 		end namespace
 	end macro
 
-	local global, output, sources, segments, prolog, epilog
+	local global, sources, segments, prolog, epilog, outbase, outtop
 
 	define global global
 	macro extern symbol*
@@ -223,27 +223,6 @@ macro import pc       : $        , \
 				'Syntax error in symbol arguments'
 			end rmatch
 		end iterate
-	end macro
-
-	define output output
-	macro format? arg*
-		match =bin?, arg
-			output.format = 0
-		else match =8xp?, arg
-			output.format = 1
-		else
-			err 'Unknown format ', `arg, 10
-		end match
-	end macro
-	macro name? arg*
-		if `arg and $FF = "'" | `arg and $FF = '"'
-			output.name := arg
-		else
-			output.name := `arg
-		end if
-		if lengthof output.name > 8
-			err 'Progname name "', output.name, '" is too long'
-		end if
 	end macro
 
 	macro files? args&
@@ -339,19 +318,19 @@ macro import pc       : $        , \
 		end virtual
 	end macro
 
-	if ~defined output.format
-		err 'Please pass the output format with -i''format bin|8xp'''
-	else if output.format & ~defined output.name
-		err 'Please pass the output program name with -i''name "PROGNAME"'''
-	else if ~defined sources
+	if ~defined sources
 		err 'Please pass the input files with -i''files "file1" "file2" ...'''
 	else if ~defined segments
 		err 'No segments defined'
 	else
+		restore outbase, outtop ; forbid forward reference
 		irpv each, segments
 			namespace each
 				restore current, parts
 				current = base
+				if ~defined outbase | outbase > base & ~defined high
+					outbase = base
+				end if
 			end namespace
 		end irpv
 		irpv source, sources
@@ -366,43 +345,22 @@ macro import pc       : $        , \
 			namespace each
 				top? := current
 				length? := top - base
+				if ~defined high
+					if ~defined outtop | outtop < top
+						outtop = top
+					end if
+				else if top > high
+					repeat 1, len: length, over: top - high, max: high - base
+						err 'Segment ', segment, ' is ', `len, ' bytes, ', \
+						    `over, ' bytes larger than the maximum of ',   \
+						    `max, ' bytes'
+					end repeat
+				end if
 			end namespace
 		end irpv
+		org outbase
+		rb outtop - $
 		postpone ?
-			restore output.base, output.top
-			irpv each, segments
-				namespace each
-					if ~defined high
-						if ~defined output.base | base < output.base
-							output.base = base
-						end if
-						if ~defined output.top | top > output.top
-							output.top = top
-						end if
-					else if top > high
-						repeat 1, len: length, over: top - high, max: high - base
-							err 'Segment ', segment, ' is ', `len, ' bytes, ', \
-							    `over, ' bytes larger than the maximum of ',   \
-							    `max, ' bytes'
-						end repeat
-					end if
-				end namespace
-			end irpv
-			output.length := output.top - output.base
-			if output.format
-				dq '**TI83F*'
-				db 26, 10, 0
-				rb 42
-				dw 2 + 13 + 2 + 2 + 2 + output.length
-				org output.base - 21
-				dw 13, 2 + 2 + output.length
-				db 6
-				dq output.name
-				dw 0, 2 + 2 + output.length, 2 + output.length, 7BEFh
-			else
-				org output.base
-			end if
-			db output.length dup 0
 			irpv each, segments
 				namespace each
 					if ~defined high
@@ -415,14 +373,6 @@ macro import pc       : $        , \
 					end if
 				end namespace
 			end irpv
-			if output.format
-				output.checksum = 0
-				repeat $ - $$, addr: $$
-					load output.temp: byte from addr
-					output.checksum = (output.checksum + output.temp) and 0FFFFh
-				end repeat
-				dw output.checksum
-			end if
 		end postpone
 	end if
 end macro
