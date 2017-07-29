@@ -1,3 +1,4 @@
+include 'tiformat.inc'
 define ez80 ez80
 namespace ez80
 	include 'ez80.inc'
