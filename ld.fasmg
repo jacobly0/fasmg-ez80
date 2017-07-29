@@ -17,6 +17,7 @@ macro import pc       : $        , \
              equ      : equ      , \
              err      : err      , \
              eval     : eval     , \
+             extern   : extern   , \
              ez80     : ez80     , \
              from     : from     , \
              if       : if       , \
@@ -31,6 +32,7 @@ macro import pc       : $        , \
              match    : match    , \
              mod      : mod      , \
              namespace: namespace, \
+             public   : public   , \
              purge    : purge    , \
              rb       : rb       , \
              reequ    : reequ    , \
@@ -62,13 +64,21 @@ macro import pc       : $        , \
 				end macro
 			end iterate
 			iterate name, EXTERN, EXTERNAL, REF, XREF
-				macro name? symbol*
-					extern symbol
+				macro name? symbols*
+					match list : space, symbols
+						name? list
+					else
+						iterate symbol, symbols
+							extern symbol
+						end iterate
+					end match
 				end macro
 			end iterate
 			iterate name, DEF, GLOBAL, PUBLIC, XDEF
-				macro name? symbol*
-					public symbol
+				macro name? symbols*
+					iterate symbol, symbols
+						public symbol
+					end iterate
 				end macro
 			end iterate
 			struc (name) EQU? expr*
