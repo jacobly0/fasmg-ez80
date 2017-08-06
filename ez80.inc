@@ -118,6 +118,8 @@ element  nc?: @ez80.breg * 010o + 021o
 element   c?: @ez80.breg * 003o + 031o
 element  po?: @ez80.breg * 010o + 041o
 element  pe?: @ez80.breg * 010o + 051o
+nv? = po?
+v? = pe?
 element   p?: @ez80.breg * 010o + 061o
 element   m?: @ez80.breg * 010o + 071o
 element   d?: @ez80.breg * 003o + 032o
