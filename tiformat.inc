@@ -39,6 +39,8 @@ macro format? clause
 			else match =COMPLEX?, setting
 				type = 12
 				define cplx
+			else match =APPVAR?, setting
+				type = 21
 			else if setting eqtype 'name'
 				name = setting
 			else if setting eqtype 0
