@@ -2,17 +2,11 @@
 wget --no-verbose https://flatassembler.net/fasmg.zip --output-document=/tmp/fasmg.zip
 case "$TRAVIS_OS_NAME" in
     linux)  unzip -od bin /tmp/fasmg.zip fasmg ;;
-    osx)    wget --no-verbose http://www.agner.org/optimize/objconv.zip --output-document=/tmp/objconv.zip
-            unzip -od /tmp /tmp/objconv.zip source.zip
-            unzip -od objconv /tmp/source.zip
-	    "$CXX" -O2 objconv/*.cpp -o bin/objconv
-            wget --no-verbose https://board.flatassembler.net/files/fasmg_macosx_132.zip --output-document=/tmp/fasmg_macosx.zip
+    osx)    wget --no-verbose https://board.flatassembler.net/download.php?id=7656 --output-document=/tmp/fasmg_macos.zip
             unzip -od fasmg /tmp/fasmg.zip
-            unzip -od fasmg /tmp/fasmg_macosx.zip
-            patch --batch --directory=fasmg --unified --input=macosx.patch --strip=0
-            fasmg/fasmg fasmg/source/libc/fasmg.asm fasmg/fasmg.elf
-            objconv -fmacho32 -nu fasmg/fasmg.{elf,macho}
-            "$CC" -m32 -Wl,-no_pie fasmg/fasmg.macho -o bin/fasmg ;;
+            unzip -od fasmg /tmp/fasmg_macos.zip
+            chmod +x fasmg/fasmg
+            fasmg/fasmg fasmg/source/macos/fasmg.asm bin/fasmg ;;
     *)      echo "Unknown OS: $TRAVIS_OS_NAME" >2
             exit 1
 esac
