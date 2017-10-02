@@ -1,13 +1,11 @@
 #!/bin/bash -ex
-wget --no-verbose https://flatassembler.net/fasmg.zip --output-document=/tmp/fasmg.zip
 case "$TRAVIS_OS_NAME" in
-    linux)  unzip -od bin /tmp/fasmg.zip fasmg ;;
-    osx)    wget --no-verbose https://board.flatassembler.net/download.php?id=7656 --output-document=/tmp/fasmg_macos.zip
-            unzip -od fasmg /tmp/fasmg.zip
-            unzip -od fasmg /tmp/fasmg_macos.zip
-            chmod +x fasmg/fasmg
-            fasmg/fasmg fasmg/source/macos/fasmg.asm bin/fasmg ;;
+    linux)  path=fasmg ;;
+    win)    path=fasmg.exe ;;
+    osx)    path=source/macos/fasmg ;;
     *)      echo "Unknown OS: $TRAVIS_OS_NAME" >2
             exit 1
 esac
+wget --no-verbose https://flatassembler.net/fasmg.zip --output-document=/tmp/fasmg.zip
+unzip -jod bin /tmp/fasmg.zip $path
 chmod +x bin/fasmg
