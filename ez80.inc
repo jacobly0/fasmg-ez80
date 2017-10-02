@@ -85,7 +85,7 @@ end macro
 
 long? = 3
 macro dl? @values*&
-	emit long?: @value
+	emit long?: @values
 end macro
 iterate @name, dl, rl
 	struc @name? @values*&
