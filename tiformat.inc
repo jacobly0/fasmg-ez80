@@ -1,6 +1,3 @@
-macro format?.binary? clause&
-	format binary clause
-end macro
 macro format?.ti? clause&
 	local all, checkloc, checksum, cplx, data, exec, flag, head, name, process, prot, temp, type, var
 	macro process setting
@@ -87,9 +84,4 @@ macro format?.ti? clause&
 	postpone
 		checkloc = $%
 	end postpone
-end macro
-macro format? clause
-	match type args, clause
-		format?.type args
-	end match
 end macro
