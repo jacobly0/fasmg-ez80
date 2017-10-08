@@ -70,8 +70,8 @@ macro format?.ti? clause&
 	end if
 	checksum = 0
 	macro org? address
-		repeat $@ - $$, loc : $$
-			load temp : byte from loc
+		repeat $@ - $$
+			load temp : byte from $$ + % - 1
 			checksum = (checksum + temp) and 0FFFFh
 		end repeat
 		org address
