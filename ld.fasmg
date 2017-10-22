@@ -17,6 +17,7 @@ macro import pc       : $        , \
              end      : end      , \
              equ      : equ      , \
              err      : err      , \
+             esc      : esc      , \
              eval     : eval     , \
              extern   : extern   , \
              ez80     : ez80     , \
@@ -27,6 +28,7 @@ macro import pc       : $        , \
              iterate  : iterate  , \
              label    : label    , \
              lengthof : lengthof , \
+             libfunc  : libfunc  , \
              load     : load     , \
              local    : local    , \
              macro    : macro    , \
@@ -45,8 +47,28 @@ macro import pc       : $        , \
              shr      : shr      , \
              store    : store    , \
              struc    : struc    , \
+             used     : used     , \
              virtual  : virtual  , \
              xor      : xor
+	macro parselib file
+		local private, offset
+		namespace private
+			offset = 0
+			macro library?! name, version
+				end if
+					emit 1: $C0, name, 0, version
+				if 0
+			end macro
+			macro export?! function
+				end if
+					libfunc offset, _#function
+				if 0
+			end macro
+			if 0
+				esc include! file
+			end if
+		end namespace
+	end macro
 	macro parse file
 		local private
 		namespace private
@@ -204,7 +226,7 @@ macro import pc       : $        , \
 		end namespace
 	end macro
 
-	local global, sources, segments, prolog, epilog, outbase, outtop
+	local global, sources, libsources, segments, prolog, epilog, outbase, outtop
 
 	define global global
 	macro extern symbol*
@@ -212,6 +234,16 @@ macro import pc       : $        , \
 	end macro
 	macro public symbol*
 		global.symbol := symbol
+	end macro
+	macro libfunc offset, symbol*
+		symbol:
+		public symbol
+		if used global.symbol
+			namespace ez80
+				jp offset
+			end namespace
+		end if
+		offset = offset + 3
 	end macro
 	macro symbol? args&
 		iterate arg, args
@@ -225,18 +257,20 @@ macro import pc       : $        , \
 		end iterate
 	end macro
 
-	macro files? args&
-		iterate arg, args
-			match first= rest, arg
-				files first
-				files rest
-			else if `arg and $FF = "'" | `arg and $FF = '"'
-				sources =: arg
-			else
-				sources =: `arg
-			end if
-		end iterate
-	end macro
+	iterate <name,result*>, files?,sources, libs?,libsources
+		macro name args&
+			iterate arg, args
+				match first= rest, arg
+					name first
+					name rest
+				else if `arg and $FF = "'" | `arg and $FF = '"'
+					result =: arg
+				else
+					result =: `arg
+				end if
+			end iterate
+		end macro
+	end iterate
 
 	macro locate? args&
 		iterate arg, args
@@ -333,10 +367,15 @@ macro import pc       : $        , \
 				end if
 			end namespace
 		end irpv
-		irpv source, sources
+		irpv each, libsources
+			prolog segments.libs?
+				parselib each
+			epilog
+		end irpv
+		irpv each, sources
 			irpv first, segments
 				prolog first
-					parse source
+					parse each
 				epilog
 				break
 			end irpv
