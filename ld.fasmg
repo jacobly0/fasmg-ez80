@@ -263,7 +263,7 @@ macro import pc       : $        , \
 				match first= rest, arg
 					name first
 					name rest
-				else if `arg and $FF = "'" | `arg and $FF = '"'
+				else if `arg and $FF = "'"
 					result =: arg
 				else
 					result =: `arg
