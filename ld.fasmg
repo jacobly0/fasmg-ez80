@@ -238,12 +238,12 @@ macro import pc       : $        , \
 	macro libfunc offset, symbol*
 		symbol:
 		public symbol
-		if used global.symbol
-			namespace ez80
+		namespace ez80
+			if used global.symbol
 				jp offset
-			end namespace
-		end if
-		offset = offset + 3
+			end if
+			offset = offset + word + @ez80.il
+		end namespace
 	end macro
 	macro symbol? args&
 		iterate arg, args
