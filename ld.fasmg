@@ -104,19 +104,19 @@ macro import pc       : $        , \
 					end iterate
 				end macro
 			end iterate
-			struc (name) EQU? expr*
+			struc (symbol) EQU? expr*
 				local error
-				if ~defined error & defined name | error
-					err 'Symbol "', `name, '" already defined'
+				if ~defined error & defined symbol | error
+					err 'Symbol "', `symbol, '" already defined'
 					error = 1
 				else
 					error = 0
 				end if
-				. = expr
+				?symbol = expr
 			end struc
 			iterate name, VAR, SET
-				struc name? expr*
-					. = expr
+				struc (symbol) name? expr*
+					?symbol = expr
 				end struc
 			end iterate
 			macro DS? count
