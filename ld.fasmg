@@ -198,7 +198,6 @@ macro import pc       : $        , \
 					end if
 					repeat length
 						if ~text xor `delim and $FF
-							display `line, 10
 							purge ?
 							break
 						end if
