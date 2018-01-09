@@ -84,7 +84,26 @@ macro import $        : $        , \
 		usedlib = usedfunc
 	end macro
 
-	macro parse file
+	macro checksrc file, usedsrc
+		local private
+		namespace private
+			iterate name, DEF, GLOBAL, PUBLIC, XDEF
+				macro name?! symbols*
+					end if
+						iterate symbol, symbols
+							if used global.symbol
+								usedsrc = 1
+							end if
+						end iterate
+					if 0
+				end macro
+			end iterate
+			if 0
+				esc include! file
+			end if
+		end namespace
+	end macro
+	macro parsesrc file
 		local private
 		namespace private
 			?$ equ $
@@ -239,6 +258,14 @@ macro import $        : $        , \
 			purge ?
 		end namespace
 	end macro
+	macro src file
+		local usedsrc
+		usedsrc = 0
+		checksrc file, usedsrc
+		if usedsrc
+			parsesrc file
+		end if
+	end macro
 
 	macro symbol? args&
 		iterate arg, args
@@ -250,6 +277,13 @@ macro import $        : $        , \
 				'Syntax error in symbol arguments'
 			end rmatch
 		end iterate
+	end macro
+	macro entry? args&
+		local use
+		iterate arg, args
+			use = global.arg
+		end iterate
+		restore use
 	end macro
 
 	iterate <name,result*>, files?,sources, libs?,libsources
@@ -370,7 +404,7 @@ macro import $        : $        , \
 		irpv each, sources
 			irpv first, segments
 				prolog first
-					parse each
+					src each
 				epilog
 				break
 			end irpv
