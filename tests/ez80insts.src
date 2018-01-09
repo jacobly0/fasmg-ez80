@@ -1,4 +1,5 @@
-	NOP  ; 00
+	XDEF START
+START:	NOP  ; 00
 	LD BC,$0000 ; 01 $0000
 	LD (BC),A ; 02
 	INC BC ; 03
