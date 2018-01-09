@@ -19,7 +19,6 @@ macro import $        : $        , \
              err      : err      , \
              esc      : esc      , \
              eval     : eval     , \
-             extern   : extern   , \
              ez80     : ez80     , \
              from     : from     , \
              if       : if       , \
@@ -28,14 +27,12 @@ macro import $        : $        , \
              iterate  : iterate  , \
              label    : label    , \
              lengthof : lengthof , \
-             libfunc  : libfunc  , \
              load     : load     , \
              local    : local    , \
              macro    : macro    , \
              match    : match    , \
              mod      : mod      , \
              namespace: namespace, \
-             public   : public   , \
              purge    : purge    , \
              rb       : rb       , \
              reequ    : reequ    , \
@@ -50,18 +47,28 @@ macro import $        : $        , \
              used     : used     , \
              virtual  : virtual  , \
              xor      : xor
-	macro parselib file
-		local private, offset
+	local global, sources, libsources, segments, prolog, epilog, outbase, outtop
+
+	macro parselib file, offset, usedfunc, usedlib
+		local private
 		namespace private
-			offset = 0
 			macro library?! name, version
 				end if
-					emit 1: $C0, name, 0, version
+					if usedlib
+						emit 1: $C0, name, 0, version
+					end if
 				if 0
 			end macro
 			macro export?! function
 				end if
-					libfunc offset, _#function
+					namespace ez80
+						if used global._#function
+							usedfunc = 1
+						global._#function:
+							jp offset
+						end if
+						offset = offset + word + @ez80.il
+					end namespace
 				if 0
 			end macro
 			if 0
@@ -69,6 +76,14 @@ macro import $        : $        , \
 			end if
 		end namespace
 	end macro
+	macro lib file
+		local offset, usedfunc, usedlib
+		offset = 0
+		usedfunc = 0
+		parselib file, offset, usedfunc, usedlib
+		usedlib = usedfunc
+	end macro
+
 	macro parse file
 		local private
 		namespace private
@@ -92,7 +107,7 @@ macro import $        : $        , \
 						name? list
 					else
 						iterate symbol, symbols
-							extern symbol
+							symbol := global.symbol
 						end iterate
 					end match
 				end macro
@@ -100,7 +115,7 @@ macro import $        : $        , \
 			iterate name, DEF, GLOBAL, PUBLIC, XDEF
 				macro name? symbols*
 					iterate symbol, symbols
-						public symbol
+						global.symbol := symbol
 					end iterate
 				end macro
 			end iterate
@@ -225,25 +240,6 @@ macro import $        : $        , \
 		end namespace
 	end macro
 
-	local global, sources, libsources, segments, prolog, epilog, outbase, outtop
-
-	define global global
-	macro extern symbol*
-		symbol := global.symbol
-	end macro
-	macro public symbol*
-		global.symbol := symbol
-	end macro
-	macro libfunc offset, symbol*
-		symbol:
-		public symbol
-		namespace ez80
-			if used global.symbol
-				jp offset
-			end if
-			offset = offset + word + @ez80.il
-		end namespace
-	end macro
 	macro symbol? args&
 		iterate arg, args
 			rmatch symbol == value, arg
@@ -263,9 +259,9 @@ macro import $        : $        , \
 					name first
 					name rest
 				else if `arg and $FF = "'"
-					result =: arg
+					result equ arg
 				else
-					result =: `arg
+					result equ `arg
 				end if
 			end iterate
 		end macro
@@ -368,7 +364,7 @@ macro import $        : $        , \
 		end irpv
 		irpv each, libsources
 			prolog segments.libs?
-				parselib each
+				lib each
 			epilog
 		end irpv
 		irpv each, sources
