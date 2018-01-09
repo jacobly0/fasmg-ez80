@@ -3,7 +3,7 @@ define ez80 ez80
 namespace ez80
 	include 'ez80.inc'
 end namespace
-macro import pc       : $        , \
+macro import $        : $        , \
              $$       : $$       , \
              and      : and      , \
              at       : at       , \
@@ -72,7 +72,7 @@ macro import pc       : $        , \
 	macro parse file
 		local private
 		namespace private
-			$ equ pc
+			?$ equ $
 			iterate name, LIST, NEWPAGE, NOLIST, PAGE
 				macro name?
 				end macro
@@ -154,7 +154,7 @@ macro import pc       : $        , \
 			macro ALIGN? val*
 				local v
 				v = val
-				rb v-1 - (pc + v-1) mod v
+				rb v-1 - ($ + v-1) mod v
 			end macro
 			macro SEGMENT? name*
 				segment name
@@ -342,9 +342,9 @@ macro import pc       : $        , \
 			match name, segment
 			area::
 				base = $$
-				length = pc - $$
+				length = $ - $$
 				namespace name
-					current = pc
+					current = $
 					parts equ area base length
 				end namespace
 			end match
