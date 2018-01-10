@@ -13,7 +13,6 @@ addons:
 
 before_install:
   - export PATH="$PATH:$PWD/bin" PS4="$ "
-  - if [[ "$TRAVIS_OS_NAME" = osx ]]; then rvm get stable; fi
 
 before_script:
   - install_fasmg
