@@ -47,7 +47,7 @@ macro import $        : $        , \
              used     : used     , \
              virtual  : virtual  , \
              xor      : xor
-	local global, sources, libsources, segments, prolog, epilog, outbase, outtop
+	local global, sources, libsources, segments, outbase, outtop, outtemp
 
 	macro parselib file, offset, usedfunc, usedlib
 		local private
@@ -356,29 +356,8 @@ macro import $        : $        , \
 	end macro
 
 	macro segment name*
-		epilog
-		prolog segments.name
-	end macro
-	macro prolog name*
-		if defined name
-			define segment name
-		else
-			err 'Undefined segment ', `name
-		end if
-		virtual at name.current
-	end macro
-	macro epilog
-		local area, base, length
-			match name, segment
-			area::
-				base = $$
-				length = $ - $$
-				namespace name
-					current = $
-					parts equ area base length
-				end namespace
-			end match
 		end virtual
+		virtual segments.name.area
 	end macro
 
 	if ~defined sources
@@ -389,38 +368,41 @@ macro import $        : $        , \
 		restore outbase, outtop ; forbid forward reference
 		irpv each, segments
 			namespace each
-				restore current, parts
-				current = base
+				virtual at base
+				area?::
+				end virtual
 				if ~defined outbase | outbase > base & ~defined high
 					outbase = base
 				end if
 			end namespace
 		end irpv
 		irpv each, libsources
-			prolog segments.libs?
+			virtual segments.libs.area
 				lib each
-			epilog
+			end virtual
 		end irpv
 		irpv each, sources
 			irpv first, segments
-				prolog first
+				virtual first.area
 					src each
-				epilog
+				end virtual
 				break
 			end irpv
 		end irpv
 		irpv each, segments
 			namespace each
-				top? := current
-				length? := top - base
+				virtual area
+					top? := $
+					length? := $ - $$
+				end virtual
 				if ~defined high
 					if ~defined outtop | outtop < top
 						outtop = top
 					end if
 				else if top > high
 					repeat 1, len: length, over: top - high, max: high - base
-						err 'Segment ', segment, ' is ', `len, ' bytes, ', \
-						    `over, ' bytes larger than the maximum of ',   \
+						err 'Segment ', each, ' is ', `len, ' bytes, ',  \
+						    `over, ' bytes larger than the maximum of ', \
 						    `max, ' bytes'
 					end repeat
 				end if
@@ -432,12 +414,8 @@ macro import $        : $        , \
 			irpv each, segments
 				namespace each
 					if ~defined high
-						irpv part, parts
-							match area base length, part
-								load output.temp: length from area: base
-								store output.temp: length at base
-							end match
-						end irpv
+						load outtemp: length from area: base
+						store outtemp: length at base
 					end if
 				end namespace
 			end irpv
