@@ -38,6 +38,7 @@ macro import $        : $        , \
              reequ    : reequ    , \
              repeat   : repeat   , \
              restore  : restore  , \
+             restruc  : restruc  , \
              rmatch   : rmatch   , \
              segment  : segment  , \
              shl      : shl      , \
@@ -88,15 +89,17 @@ macro import $        : $        , \
 		local private
 		namespace private
 			iterate name, DEF, GLOBAL, PUBLIC, XDEF
-				macro name?! symbols*
-					end if
-						iterate symbol, symbols
-							if used global.symbol
-								usedsrc = 1
-							end if
-						end iterate
-					if 0
-				end macro
+				iterate style, name, .name
+					macro style?! symbols*&
+						end if
+							iterate symbol, symbols
+								if used global.symbol
+									usedsrc = 1
+								end if
+							end iterate
+						if 0
+					end macro
+				end iterate
 			end iterate
 			if 0
 				esc include! file
@@ -121,7 +124,7 @@ macro import $        : $        , \
 				end macro
 			end iterate
 			iterate name, EXTERN, EXTERNAL, REF, XREF
-				macro name? symbols*
+				macro name? symbols*&
 					match list : space, symbols
 						name? list
 					else
@@ -132,7 +135,7 @@ macro import $        : $        , \
 				end macro
 			end iterate
 			iterate name, DEF, GLOBAL, PUBLIC, XDEF
-				macro name? symbols*
+				macro name? symbols*&
 					iterate symbol, symbols
 						global.symbol := symbol
 					end iterate
@@ -185,6 +188,9 @@ macro import $        : $        , \
 					end struc
 				end iterate
 			end iterate
+			macro TRIO? vals*&
+				DW24? vals
+			end macro
 			macro ALIGN? val*
 				local v
 				v = val
@@ -203,18 +209,23 @@ macro import $        : $        , \
 			                  MB, BC, DE, HL, IX, IY, SP, AF, AF'
 				register? := ez80.register?
 			end iterate
-			irpv name, ez80.@ez80.oplist
-				rmatch rname, name
-					define rname rname
-					iterate suffix, , .s?, .l?, .is?, .il?, .sis?, .sil?, .lis?, .lil?
+			iterate suffix, , .s?, .l?, .is?, .il?, .sis?, .sil?, .lis?, .lil?
+				irpv name, ez80.@ez80.oplist
+					rmatch rname, name
+						define rname rname
 						macro rname#suffix args&
 							namespace ez80
 								name#suffix args
 							end namespace
 						end macro
-					end iterate
-				end rmatch
-			end irpv
+					end rmatch
+				end irpv
+				macro jr?#suffix args&
+					namespace ez80
+						jq?#suffix args
+					end namespace
+				end macro
+			end iterate
 			macro COMMENT? delim*&
 				end match
 				local inside
@@ -324,7 +335,7 @@ macro import $        : $        , \
 			else
 				err 'Syntax error in range arguments'
 			end rmatch
-		end match
+		end iterate
 	end macro
 	macro order? args&
 		match first =, second =, rest, args
