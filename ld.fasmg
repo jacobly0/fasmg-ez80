@@ -393,12 +393,9 @@ macro import $        : $        , \
 			end virtual
 		end irpv
 		irpv each, sources
-			irpv first, segments
-				virtual first.area
-					src each
-				end virtual
-				break
-			end irpv
+			virtual segments.code.area
+				src each
+			end virtual
 		end irpv
 		irpv each, segments
 			namespace each
