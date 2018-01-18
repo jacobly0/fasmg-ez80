@@ -48,7 +48,7 @@ macro import $        : $        , \
              used     : used     , \
              virtual  : virtual  , \
              xor      : xor
-	local global, sources, libsources, segments, outbase, outtop, outtemp
+	local global, files, libfiles, segments, outbase, outtop, outtemp
 
 	macro parselib file, offset, usedfunc, usedlib
 		local private
@@ -298,15 +298,8 @@ macro import $        : $        , \
 			end rmatch
 		end iterate
 	end macro
-	macro entry? args&
-		local use
-		iterate arg, args
-			use = global.arg
-		end iterate
-		restore use
-	end macro
 
-	iterate <name,result*>, files?,sources, libs?,libsources
+	iterate <name,result*>, deps?,files, libs?,libfiles
 		macro name args&
 			iterate arg, args
 				match first= rest, arg
@@ -320,6 +313,17 @@ macro import $        : $        , \
 			end iterate
 		end macro
 	end iterate
+	macro file?*, cond:1
+		namespace segments
+			if cond
+				if `file and $FF = "'"
+					files equ file
+				else
+					files equ `file
+				end if
+			end if
+		end namespace
+	end macro
 
 	macro locate? args&
 		iterate arg, args
@@ -380,8 +384,8 @@ macro import $        : $        , \
 		virtual segments.name.area
 	end macro
 
-	if ~defined sources
-		err 'Please pass the input files with -i''files "file1" "file2" ...'''
+	if ~defined files
+		err 'Please pass the input files with -i''file "file"[, "cond"]'' and -i''deps "file1" "file2" ...'''
 	else if ~defined segments
 		err 'No segments defined'
 	else
@@ -396,12 +400,12 @@ macro import $        : $        , \
 				end if
 			end namespace
 		end irpv
-		irpv each, libsources
+		irpv each, libfiles
 			virtual segments.libs.area
 				lib each
 			end virtual
 		end irpv
-		irpv each, sources
+		irpv each, files
 			virtual segments.code.area
 				src each
 			end virtual
