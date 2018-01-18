@@ -118,6 +118,8 @@ macro import $        : $        , \
 				macro name? arg*
 				end macro
 			end iterate
+			macro DEFINE? args*&
+			end macro
 			iterate name, COPY, INCLUDE
 				macro name? path*
 					include path
