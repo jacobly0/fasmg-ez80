@@ -48,9 +48,9 @@ macro import $        : $        , \
              used     : used     , \
              virtual  : virtual  , \
              xor      : xor
-	local global, files, libfiles, segments, outbase, outtop, outtemp
+	local global, files, segments, output
 
-	macro parselib file, offset, usedfunc, usedlib
+	macro files.libs.parse file, offset, usedfunc, usedlib
 		local private
 		namespace private
 			macro library?! name, version
@@ -77,15 +77,15 @@ macro import $        : $        , \
 			end if
 		end namespace
 	end macro
-	macro lib file
+	macro files.libs.handle file
 		local offset, usedfunc, usedlib
 		offset = 0
 		usedfunc = 0
-		parselib file, offset, usedfunc, usedlib
+		files.libs.parse file, offset, usedfunc, usedlib
 		usedlib = usedfunc
 	end macro
 
-	macro checksrc file, usedsrc
+	macro files.deps.check file, usedsrc
 		local private
 		namespace private
 			iterate name, DEF, GLOBAL, PUBLIC, XDEF
@@ -106,7 +106,7 @@ macro import $        : $        , \
 			end if
 		end namespace
 	end macro
-	macro parsesrc file
+	macro files.parse file
 		local private
 		namespace private
 			?$ equ $
@@ -278,12 +278,15 @@ macro import $        : $        , \
 			purge ?
 		end namespace
 	end macro
-	macro src file
+	macro files.handle file
+		files.parse file
+	end macro
+	macro files.deps.handle file
 		local usedsrc
 		usedsrc = 0
-		checksrc file, usedsrc
+		files.deps.check file, usedsrc
 		if usedsrc
-			parsesrc file
+			files.parse file
 		end if
 	end macro
 
@@ -299,27 +302,27 @@ macro import $        : $        , \
 		end iterate
 	end macro
 
-	iterate <name,result*>, deps?,files, libs?,libfiles
-		macro name args&
+	iterate name, deps, libs
+		macro name? args*&
 			iterate arg, args
 				match first= rest, arg
-					name first
-					name rest
+					name? first
+					name? rest
 				else if `arg and $FF = "'"
-					result equ arg
+					files.name equ arg
 				else
-					result equ `arg
+					files.name equ `arg
 				end if
 			end iterate
 		end macro
 	end iterate
-	macro file?*, cond:1
+	macro source? arg*, cond:1
 		namespace segments
 			if cond
-				if `file and $FF = "'"
-					files equ file
+				if `arg and $FF = "'"
+					files equ arg
 				else
-					files equ `file
+					files equ `arg
 				end if
 			end if
 		end namespace
@@ -363,13 +366,13 @@ macro import $        : $        , \
 	macro merge? args&
 		match name == list, args
 			order list
-			iterate each, list
-				locate name at each.base
+			iterate segment, list
+				locate name at segment.base
 				indx %%
 				namespace segments
-					name.top? := each.base + each.length
-					if defined each.high
-						name.high? := each.high
+					name.top? := segment.base + segment.length
+					if defined segment.high
+						name.high? := segment.high
 					end if
 				end namespace
 				break
@@ -385,58 +388,63 @@ macro import $        : $        , \
 	end macro
 
 	if ~defined files
-		err 'Please pass the input files with -i''file "file"[, "cond"]'' and -i''deps "file1" "file2" ...'''
+		err 'Please pass the input files with -i''source "file"[, "cond"]'''
 	else if ~defined segments
 		err 'No segments defined'
 	else
-		restore outbase, outtop ; forbid forward reference
-		irpv each, segments
-			namespace each
+		restore output.base, output.top ; forbid forward reference
+		irpv segment, segments
+			namespace segment
 				virtual at base
 				area?::
 				end virtual
-				if ~defined outbase | outbase > base & ~defined high
-					outbase = base
+				if ~defined output.base | output.base > base & ~defined high
+					output.base = base
 				end if
 			end namespace
 		end irpv
-		irpv each, libfiles
-			virtual segments.libs.area
-				lib each
-			end virtual
-		end irpv
-		irpv each, files
+		irpv file, files
 			virtual segments.code.area
-				src each
+				files.handle file
 			end virtual
 		end irpv
-		irpv each, segments
-			namespace each
+		irpv file, files.deps
+			virtual segments.code.area
+				files.deps.handle file
+			end virtual
+		end irpv
+		irpv file, files.libs
+			virtual segments.libs.area
+				files.libs.handle file
+			end virtual
+		end irpv
+		irpv segment, segments
+			namespace segment
 				virtual area
 					top? := $
 					length? := $ - $$
 				end virtual
 				if ~defined high
-					if ~defined outtop | outtop < top
-						outtop = top
+					if ~defined output.top | output.top < top
+						output.top = top
 					end if
 				else if top > high
 					repeat 1, len: length, over: top - high, max: high - base
-						err 'Segment ', each, ' is ', `len, ' bytes, ',  \
+						err 'Segment ', segment, ' is ', `len, ' bytes, ',  \
 						    `over, ' bytes larger than the maximum of ', \
 						    `max, ' bytes'
 					end repeat
 				end if
 			end namespace
 		end irpv
-		org outbase
-		rb outtop - $
+		org output.base
+		rb output.top - $
 		postpone ?
-			irpv each, segments
-				namespace each
+			irpv segment, segments
+				namespace segment
 					if ~defined high
-						load outtemp: length from area: base
-						store outtemp: length at base
+						load output: length from area: base
+						store output: length at base
 					end if
 				end namespace
 			end irpv

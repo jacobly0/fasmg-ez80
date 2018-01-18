@@ -1,4 +1,3 @@
-files ez80insts.src
-locate default at 0
-entry START
+source ez80insts.src
+locate code at 0
 include 'ld.fasmg'
