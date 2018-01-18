@@ -110,6 +110,8 @@ macro import $        : $        , \
 		local private
 		namespace private
 			?$ equ $
+			?SHL? equ shl
+			?SHR? equ shr
 			iterate name, LIST, NEWPAGE, NOLIST, PAGE
 				macro name?
 				end macro
