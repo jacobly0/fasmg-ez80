@@ -190,9 +190,14 @@ macro import $        : $        , \
 					end struc
 				end iterate
 			end iterate
-			macro TRIO? vals*&
-				DW24? vals
-			end macro
+			iterate <name,alias*>, TRIO,DW24, DF,DL
+				macro name? vals*&
+					alias? vals
+				end macro
+				struc name? args&
+				.:	name? args
+				end struc
+			end iterate
 			macro ALIGN? val*
 				local v
 				v = val
