@@ -43,6 +43,7 @@ macro import $        : $        , \
              segment  : segment  , \
              shl      : shl      , \
              shr      : shr      , \
+             sources  : sources  , \
              store    : store    , \
              struc    : struc    , \
              used     : used     , \
