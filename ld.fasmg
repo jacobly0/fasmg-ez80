@@ -316,16 +316,23 @@ macro import $        : $        , \
 			end iterate
 		end macro
 	end iterate
-	macro source? arg*, cond:1
-		namespace segments
-			if cond
-				if `arg and $FF = "'"
-					files equ arg
-				else
-					files equ `arg
-				end if
+	macro sources? args*&
+		iterate arg, args
+			rmatch file =if? cond, arg
+				namespace segments
+					if cond
+						sources? file
+					end if
+				end namespace
+			else match first= rest, arg
+				sources? first
+				sources? rest
+			else if `arg and $FF = "'"
+				files equ arg
+			else
+				files equ `arg
 			end if
-		end namespace
+		end iterate
 	end macro
 
 	macro locate? args&
@@ -388,7 +395,7 @@ macro import $        : $        , \
 	end macro
 
 	if ~defined files
-		err 'Please pass the input files with -i''source "file"[, "cond"]'''
+		err 'Please pass the input files with -i''sources "file1" [if "cond1"], "file2" [if "cond2"], ...'''
 	else if ~defined segments
 		err 'No segments defined'
 	else
