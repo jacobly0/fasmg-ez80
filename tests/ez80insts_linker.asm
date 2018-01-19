@@ -1,3 +1,3 @@
-source ez80insts.src
+sources ez80insts.src
 locate code at 0
 include 'ld.fasmg'
