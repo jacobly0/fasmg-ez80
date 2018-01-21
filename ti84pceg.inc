@@ -21,7 +21,7 @@ macro private
 		else match =~ right, expr
 			assign name, not right
 		else
-			name? = expr
+			name? := expr
 		end match
 	end macro
 	struc (name) equ? expr&
