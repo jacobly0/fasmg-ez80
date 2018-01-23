@@ -68,11 +68,11 @@ macro import $        : $        , \
 			macro export?! function
 				end if
 					namespace ez80
-						global equ global._#function
 						if used global._#function
 							usedfunc = 1
 						global._#function:
 							jp offset
+							global equ global._#function
 						end if
 						offset = offset + word + @ez80.il
 					end namespace
@@ -147,8 +147,8 @@ macro import $        : $        , \
 			iterate name, DEF, GLOBAL, PUBLIC, XDEF
 				macro name? symbols*&
 					iterate symbol, symbols
-						global equ global.symbol
 						global.symbol := symbol
+						global equ global.symbol
 					end iterate
 				end macro
 			end iterate
@@ -301,8 +301,8 @@ macro import $        : $        , \
 		iterate arg, args
 			rmatch symbol == value, arg
 				namespace segments
-					global equ global.symbol
 					global.symbol := value
+					global equ global.symbol
 				end namespace
 			else
 				'Syntax error in symbol arguments'
@@ -409,7 +409,7 @@ macro import $        : $        , \
 				val = value
 				leading = 1
 				repeat 6
-					digit = val shl ((%% - %) shl 2) and 0Fh
+					digit = (val shr ((%% - %) shl 2)) and 0Fh
 					load char: 1 from digits: digit
 					if digit
 						leading = 0
@@ -427,7 +427,7 @@ macro import $        : $        , \
 						longest = lengthof segment
 					end if
 				end irpv
-				emit 1: "Segment", longest - lengthof "Segment" + 1 dup ' ', "Base   Top    High   Length", 10, longest dup '-', " ------ ------ ------ -------", 10
+				emit 1: "Segment", longest - lengthof "Segment" + 1 dup ' ', "Base   Top    High   Length", 10, longest dup '-', 4 dup " ------", '-', 10
 				irpv segment, segments
 					namespace segment
 						if longest < lengthof segment
@@ -445,14 +445,14 @@ macro import $        : $        , \
 					end namespace
 				end irpv
 				if defined global
-					longest = lengthof "global."
+					longest = lengthof "global.Label"
 					irpv symbol, global
 						if longest < lengthof `symbol
 							longest = lengthof `symbol
 						end if
 					end irpv
 					longest = longest - lengthof "global."
-					emit 1: 10, "Labels", 10, longest + 3 + 6 dup '-', 10
+					emit 1: 10, "Label", longest - lengthof "Label" + 3 dup ' ', "Value", 10, longest dup '-', 3 dup ' ', 6 dup '-', 10
 					irpv symbol, global
 						virtual at -lengthof "global."
 							emit 1: `symbol
