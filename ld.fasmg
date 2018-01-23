@@ -72,7 +72,12 @@ macro import $        : $        , \
 							usedfunc = 1
 						global._#function:
 							jp offset
-							global equ global._#function
+							virtual
+								local name
+								emit 1: '_', `function
+								load name: $ - $$ from $$
+								global equ name = global._#function
+							end virtual
 						end if
 						offset = offset + word + @ez80.il
 					end namespace
@@ -148,7 +153,12 @@ macro import $        : $        , \
 				macro name? symbols*&
 					iterate symbol, symbols
 						global.symbol := symbol
-						global equ global.symbol
+						virtual
+							local name
+							emit 1: `symbol
+							load name: $ - $$ from $$
+							global equ name = global.symbol
+						end virtual
 					end iterate
 				end macro
 			end iterate
@@ -302,7 +312,12 @@ macro import $        : $        , \
 			rmatch symbol == value, arg
 				namespace segments
 					global.symbol := value
-					global equ global.symbol
+					virtual
+						local name
+						emit 1: `symbol
+						load name: $ - $$ from $$
+						global equ = name global.symbol
+					end virtual
 				end namespace
 			else
 				'Syntax error in symbol arguments'
@@ -444,24 +459,23 @@ macro import $        : $        , \
 						hex length, 'h', 10
 					end namespace
 				end irpv
-				if defined global
-					longest = lengthof "global.Label"
+				match any, global
+					longest = lengthof "Label"
 					irpv symbol, global
-						if longest < lengthof `symbol
-							longest = lengthof `symbol
-						end if
+						match name == value, symbol
+							if longest < lengthof name
+								longest = lengthof name
+							end if
+						end match
 					end irpv
-					longest = longest - lengthof "global."
 					emit 1: 10, "Label", longest - lengthof "Label" + 3 dup ' ', "Value", 10, longest dup '-', 3 dup ' ', 6 dup '-', 10
 					irpv symbol, global
-						virtual at -lengthof "global."
-							emit 1: `symbol
-							load name: $ from 0
-						end virtual
-						emit 1: name, longest - lengthof name + 1 dup ' ', "= "
-						hex symbol, 10
+						match name == value, symbol
+							emit 1: name, longest - lengthof name + 1 dup ' ', "= "
+							hex value, 10
+						end match
 					end irpv
-				end if
+				end match
 			end virtual
 		end postpone
 	end macro
