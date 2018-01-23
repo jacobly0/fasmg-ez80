@@ -1,2 +1,2 @@
 #!/bin/bash -ex
-wget --no-verbose --compression=gzip 'http://wikiti.brandonw.net/index.php?title=84PCE:OS:Include_File&action=raw' --output-document=- | gunzip | sed -E '/^\[\[.*\]\]$/d;s|</?pre>||' > ti84pce.inc
+wget --no-verbose 'http://wikiti.brandonw.net/index.php?title=84PCE:OS:Include_File&action=raw' --output-document=- | sed -E '/^\[\[.*\]\]$/d;s|</?pre>||' > ti84pce.inc
