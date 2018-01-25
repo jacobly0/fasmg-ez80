@@ -6,6 +6,7 @@ end namespace
 macro import $        : $        , \
              $$       : $$       , \
              and      : and      , \
+             assert   : assert   , \
              at       : at       , \
              break    : break    , \
              define   : define   , \
@@ -33,6 +34,8 @@ macro import $        : $        , \
              match    : match    , \
              mod      : mod      , \
              namespace: namespace, \
+             not      : not      , \
+             or       : or       , \
              purge    : purge    , \
              rb       : rb       , \
              reequ    : reequ    , \
@@ -48,8 +51,9 @@ macro import $        : $        , \
              struc    : struc    , \
              used     : used     , \
              virtual  : virtual  , \
+             while    : while    , \
              xor      : xor
-	local global, files, segments, output
+	local global, debug, files, segments, hex, uleb128, output
 	global equ
 	files equ
 	segments equ
@@ -127,7 +131,7 @@ macro import $        : $        , \
 				macro name?
 				end macro
 			end iterate
-			iterate name, CPU, FILE, TITLE
+			iterate name, CPU, TITLE
 				macro name? arg*
 				end macro
 			end iterate
@@ -276,6 +280,73 @@ macro import $        : $        , \
 					end repeat
 				end macro
 			end macro
+
+			if defined debug
+				debug.emit = 0
+				macro ALIAS? args&
+				end macro
+				macro BEGFUNC? args&
+				end macro
+				macro BEGREC? args&
+				end macro
+				macro CLASS? args&
+				end macro
+				macro DEBUG? lang*
+					assert lang = 'C'
+					debug.emit = 1
+					debug.addr = $
+					debug.line = 0
+					virtual debug
+						uleb128 lengthof debug.source
+						emit 1: debug.source
+						uleb128 debug.addr
+					end virtual
+				end macro
+				macro DEFINE? args&
+				end macro
+				macro DIM? args&
+				end macro
+				macro ENDEF? args&
+				end macro
+				macro ENDFUNC? args&
+				end macro
+				macro ENDREC? args&
+				end macro
+				macro FILE? name*
+					debug.source = name
+				end macro
+				macro LINE? num
+					if debug.emit
+						local addr, line
+						addr = $
+						line = num
+						assert line <> debug.line
+						if addr <> debug.addr
+							virtual debug
+								uleb128 addr - debug.addr, line - debug.line
+							end virtual
+							debug.addr = addr
+							debug.line = line
+						end if
+					end if
+				end macro
+				macro PHONY? args&
+				end macro
+				macro TAG? args&
+				end macro
+				macro TYPE? args&
+				end macro
+				macro VALUE? args&
+				end macro
+			else
+				iterate name, ALIAS, BEGFUNC, BEGREC, CLASS, DEBUG, DEFINE,   \
+				              DIM, ENDEF, ENDFUNC, ENDREC, FILE, LINE, PHONY, \
+				              TAG, TYPE, VALUE
+					macro name? args&
+					end macro
+				end iterate
+			end if
+
 			macro END?!
 				end if
 				if 0
@@ -293,6 +364,15 @@ macro import $        : $        , \
 				include file
 			end if
 			purge ?
+
+			if defined debug & debug.emit
+				segment code
+				debug.addr = $ - debug.addr
+				virtual debug
+					uleb128 debug.addr, 0
+				end virtual
+				restore debug.emit, debug.addr, debug.line
+			end if
 		end namespace
 	end macro
 	macro files.handle file
@@ -412,29 +492,42 @@ macro import $        : $        , \
 		end match
 	end macro
 
+	macro hex value*, extra: ' '&
+		local val, leading, digit, char
+		val = value
+		leading = 1
+		repeat 6
+			digit = (val shr ((%% - %) shl 2)) and 0Fh
+			if digit < 10
+				char = '0' + digit
+			else
+				char = 'A' + digit - 10
+			end if
+			if digit
+				leading = 0
+			else if leading & % <> %%
+				char = ' '
+			end if
+			emit 1: char
+		end repeat
+		emit 1: extra
+	end macro
+	macro uleb128 values&
+		iterate value, values
+			local val
+			val = value
+			assert val >= 0
+			while val and not 07Fh
+				emit 1: val and 07Fh or 080h
+				val = val shr 7
+			end while
+			emit 1: val
+		end iterate
+	end macro
+
 	macro map?
-		local digits, hex, longest, name
+		local longest, name
 		postpone ?
-			virtual at 0
-			digits::
-				db "0123456789ABCDEF"
-			end virtual
-			macro hex value*, extra: ' '&
-				local val, leading, digit, char
-				val = value
-				leading = 1
-				repeat 6
-					digit = (val shr ((%% - %) shl 2)) and 0Fh
-					load char: 1 from digits: digit
-					if digit
-						leading = 0
-					else if leading & % <> %%
-						char = ' '
-					end if
-					emit 1: char
-				end repeat
-				emit 1: extra
-			end macro
 			virtual as 'map'
 				longest = lengthof "Segment"
 				irpv segment, segments
@@ -478,6 +571,11 @@ macro import $        : $        , \
 				end match
 			end virtual
 		end postpone
+	end macro
+	macro dbg?
+		virtual as 'dbg'
+		debug::
+		end virtual
 	end macro
 
 	macro segment name*
