@@ -1,0 +1,59 @@
+Index: docs/manual.txt
+==================================================================
+--- docs/manual.txt
++++ docs/manual.txt
+@@ -73,13 +73,12 @@
+ quote character. This defines a quoted string and it may contain any of the
+ special characters, whitespace and even semicolons, as it ends only when the
+ same character that was used to start it is encountered. The quotes that are
+ used to enclose the string do not become a part of the string themselves.
+ If it is needed to define a string containing the same character that is used to
+-enclose it, the character needs to be doubled inside the string - only one copy
+-of the character will become a part of the string, and the sequence will
+-continue.
++enclose it, the character needs to be preceded by a "\" inside the string, which
++needs to be doubled to get a single "\".
+   Numbers are distinguished from names by the fact that they either
+ begin with a decimal digit, or with the "$" character followed by any hexadecimal
+ digit. This means that a token can be considered numeric even when it is not a
+ valid number. To be a correct one it must be one of the following: a decimal
+ number (optionally with the letter "d" attached at the end), a binary number
+
+Index: source/reader.inc
+==================================================================
+--- source/reader.inc
++++ source/reader.inc
+@@ -183,14 +183,19 @@
+ 	je	broken_string
+ 	test	al,al
+ 	jz	broken_string
+ 	inc	esi
+ 	cmp	al,dl
++	je	finish_string_token
++	cmp	al,5Ch
++	jne	copy_string_character
++	cmp	byte [esi],dl
++	je	copy_string_escape
++	cmp	byte [esi],5Ch
+ 	jne	copy_string_character
+-	cmp	byte [esi],al
+-	jne	finish_string_token
+-	inc	esi
++    copy_string_escape:
++	lodsb
+     copy_string_character:
+ 	mov	[edi+ecx],al
+ 	inc	ecx
+ 	jmp	copy_string
+     broken_string:
+
+Index: source/version.inc
+==================================================================
+--- source/version.inc
++++ source/version.inc
+@@ -1,1 +1,1 @@
+-VERSION equ "i17sx"
+\ No newline at end of file
++VERSION equ "i29v6-ez80"
+\ No newline at end of file
+
