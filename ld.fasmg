@@ -501,11 +501,12 @@ macro import $        : $        , \
 		end match
 	end macro
 
-	macro hex value*, extra: ' '&
-		local val, leading, digit, char
+	macro hex value*, leading: '0', digits: 6
+		local val, zero, digit, char
+		emit 1: ' '
 		val = value
-		leading = 1
-		repeat 6
+		zero = leading
+		repeat digits
 			digit = (val shr ((%% - %) shl 2)) and 0Fh
 			if digit < 10
 				char = '0' + digit
@@ -513,13 +514,12 @@ macro import $        : $        , \
 				char = 'A' + digit - 10
 			end if
 			if digit
-				leading = 0
-			else if leading & % <> %%
-				char = ' '
+				zero = '0'
+			else if % <> %%
+				char = zero
 			end if
 			emit 1: char
 		end repeat
-		emit 1: extra
 	end macro
 	macro uleb128 values&
 		iterate value, values
@@ -550,7 +550,7 @@ macro import $        : $        , \
 						if longest < lengthof segment
 							longest = lengthof segment
 						end if
-						emit 1: segment, longest + 1 - lengthof segment dup ' '
+						emit 1: segment, longest - lengthof segment dup ' '
 						hex base
 						hex top
 						if defined high
@@ -558,7 +558,8 @@ macro import $        : $        , \
 						else
 							emit 1: 7 dup ' '
 						end if
-						hex length, 'h', 10
+						hex length, ' '
+						emit 1: 'h', 10
 					end namespace
 				end irpv
 				match any, global
@@ -573,8 +574,9 @@ macro import $        : $        , \
 					emit 1: 10, "Label", longest - lengthof "Label" + 3 dup ' ', "Value", 10, longest dup '-', 3 dup ' ', 6 dup '-', 10
 					irpv symbol, global
 						match name == value, symbol
-							emit 1: name, longest - lengthof name + 1 dup ' ', "= "
-							hex value, 10
+							emit 1: name, longest - lengthof name + 1 dup ' ', '='
+							hex value
+							emit 1: 10
 						end match
 					end irpv
 				end match
