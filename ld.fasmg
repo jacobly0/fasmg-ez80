@@ -356,6 +356,9 @@ macro import $        : $        , \
 				end if
 				if 0
 			end macro
+			struc ? def::&
+				. def
+			end struc
 			macro ? line&
 				match .rest, line
 					rest
@@ -369,6 +372,7 @@ macro import $        : $        , \
 				include file
 			end if
 			purge ?
+			restruc ?
 
 			if defined debug & debug.emit
 				segment code
