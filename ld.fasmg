@@ -1,3 +1,4 @@
+assert "\"" = '"' ; check for patched fasmg
 include 'tiformat.inc'
 define ez80 ez80
 namespace ez80
@@ -584,7 +585,7 @@ macro import $        : $        , \
 	end macro
 
 	if ~defined files
-		err 'Please pass the input files with -i''sources "file1" [if "cond1"], "file2" [if "cond2"], ...'''
+		err 'Please pass the input files with -i\'sources "file1" [if "cond1"], "file2" [if "cond2"], ...\''
 	else if ~defined segments
 		err 'No segments defined'
 	else
