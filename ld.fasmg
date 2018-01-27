@@ -126,8 +126,12 @@ macro import $        : $        , \
 		local private
 		namespace private
 			?$ equ $
+			?XOR? equ xor
+			?AND? equ and
+			?OR?  equ or
 			?SHL? equ shl
 			?SHR? equ shr
+			?NOT? equ not
 			iterate name, LIST, NEWPAGE, NOLIST, PAGE
 				macro name?
 				end macro
