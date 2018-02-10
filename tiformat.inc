@@ -69,7 +69,7 @@ macro format?.ti? clause&
 	flag = 0
 	process clause
 	format binary as ext
-	assert ~$%
+	assert ~$% & 'Unexpected data before format directive'
 	dq '**TI83F*'
 	db 26, 10, 0
 	rb 42
@@ -98,7 +98,7 @@ macro format?.ti? clause&
 	end macro
 	org 0D1A881h
 	postpone ?
-		assert checkloc = $%
+		assert checkloc = $% & 'Unexpected postpone before format directive'
 		org $ ; compute checksum
 		dw checksum
 	end postpone
