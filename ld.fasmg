@@ -296,6 +296,8 @@ macro import $        : $        , \
 				end macro
 				macro CLASS? args&
 				end macro
+				macro LENGTH? args&
+				end macro
 				macro DEBUG? lang*
 					assert lang = 'C'
 					debug.emit = 1
