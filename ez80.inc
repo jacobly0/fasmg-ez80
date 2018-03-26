@@ -496,18 +496,10 @@ inst ld, @dst, @src*
 				           byte src
 			end if
 		else if dst @ez80.is_reg @ez80.wreg & dst metadata 1 scale 1 and 004o
-			if src relativeto src element 1 & src @ez80.is_reg @ez80.wreg
-				if dst eq? sp
-					if src metadata 1 scale 0 = 040o
-						@ez80.emit idxpre src, byte 371o
-					end if
-				else if src metadata 1 scale 1 = 007o
-					@ez80.nest push? src
-					@ez80.nest pop? dst
-				else
-					@ez80.nest lea? dst, src
-				end if
-			else if src eq i? & dst eq hl?
+			if dst eq sp? & src eq src element 1 & src @ez80.is_reg @ez80.wreg \
+			 & src metadata 1 scale 0 = 040o
+				@ez80.emit idxpre src, byte 371o
+			else if dst eq hl? & src eq i?
 				@ez80.emit <byte 355o, 327o>
 			else
 				@ez80.emit idxpre dst, byte dst metadata 1 scale 0 or 001o, \

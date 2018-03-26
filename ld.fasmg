@@ -255,7 +255,25 @@ macro import $        : $        , \
 						end macro
 					end rmatch
 				end irpv
-				macro jr?#suffix args&
+				macro LD? d, s*
+					namespace ez80
+						@ez80.classify dst, dstind, d
+						@ez80.classify src, srcind, s
+						if ~dstind & dst eq dst element 1 & dst @ez80.is_reg @ez80.wreg \
+						 & dst metadata 1 scale 1 and 001o & ~srcind                    \
+						 & src relativeto src element 1 & src @ez80.is_reg @ez80.wreg
+							if src metadata 1 scale 1 = 007o
+								PUSH? s
+								POP? d
+							else
+								LEA? d, s
+							end if
+						else
+							LD? d, s
+						end if
+					end namespace
+				end macro
+				macro JR?#suffix args&
 					namespace ez80
 						jq?#suffix args
 					end namespace
@@ -268,10 +286,8 @@ macro import $        : $        , \
 			end macro
 			iterate <name,carry>, UEXT,RCF, SEXT,RLA
 				macro name? reg*
-					namespace ez80
-						carry?
-						sbc? reg, reg
-					end namespace
+					carry?
+					SBC? reg, reg
 				end macro
 			end iterate
 			macro COMMENT? delim*&
