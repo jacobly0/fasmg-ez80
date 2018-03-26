@@ -858,21 +858,5 @@ inst mlt, @reg*
 	end if
 end inst
 
-inst rcf
-	@ez80.nest or? a?, a?
-end inst
-iterate <@name, @carry>, \
-         uext,  rcf,     \
-         sext,  rla
-	inst @name, @reg*
-		if regind
-			err 'invalid indirection'
-		else
-			@ez80.nest @carry?
-			@ez80.nest sbc? reg, reg
-		end if
-	end inst
-end iterate
-
 purge inst
 purge end?.inst

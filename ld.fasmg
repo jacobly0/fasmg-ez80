@@ -261,6 +261,19 @@ macro import $        : $        , \
 					end namespace
 				end macro
 			end iterate
+			macro RCF?
+				namespace ez80
+					or a, a
+				end namespace
+			end macro
+			iterate <name,carry>, UEXT,RCF, SEXT,RLA
+				macro name? reg*
+					namespace ez80
+						carry?
+						sbc? reg, reg
+					end namespace
+				end macro
+			end iterate
 			macro COMMENT? delim*&
 				end match
 				local inside
