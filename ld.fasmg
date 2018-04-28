@@ -279,12 +279,7 @@ macro import $        : $        , \
 					end namespace
 				end macro
 			end iterate
-			macro RCF?
-				namespace ez80
-					or a, a
-				end namespace
-			end macro
-			iterate <name,carry>, UEXT,RCF, SEXT,RLA
+			iterate <name,carry>, UEXT,<OR? A?,A>, SEXT,RLA
 				macro name? reg*
 					carry?
 					SBC? reg, reg
