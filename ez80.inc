@@ -84,21 +84,29 @@ macro @ez80.classify @val, @ind*, @arg&
 end macro
 
 long? = 3
-; FIXME: dup
+; FIXME: dup relocations
 macro dw? @values*&
 	if @ez80.adl
 		emit word?: @values
 	else
-		iterate @value, @values
-			@ez80.word @value
-		end iterate
+		match left =dup? right, @values
+			emit word?: @values
+		else
+			iterate @value, @values
+				@ez80.word @value
+			end iterate
+		end match
 	end if
 end macro
 macro dl? @values*&
 	if @ez80.adl
-		iterate @value, @values
-			@ez80.word @value
-		end iterate
+		match left =dup? right, @values
+			emit long?: @values
+		else
+			iterate @value, @values
+				@ez80.word @value
+			end iterate
+		end match
 	else
 		emit long?: @values
 	end if
