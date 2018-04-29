@@ -54,6 +54,6 @@ Index: source/version.inc
 @@ -1,1 +1,1 @@
 -VERSION equ "i4pue"
 \ No newline at end of file
-+VERSION equ "i29v6-ez80"
++VERSION equ "i5p3v-ez80"
 \ No newline at end of file
 
