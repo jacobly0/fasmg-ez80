@@ -1,5 +1,5 @@
 macro format?.ti? clause&
-	local all, checkloc, checksum, cplx, data, exec, flag, head, name, process, prot, temp, type, ext, var
+	local all, checkloc, checksum, cplx, data, exec, flag, head, name, process, prot, type, ext, var
 	macro process setting
 		match first rest, setting
 			process first
@@ -89,13 +89,16 @@ macro format?.ti? clause&
 		dw 07BEFh
 	end if
 	checksum = 0
-	macro org? address
-		repeat $@ - $$
-			load temp : byte from $$ + % - 1
-			checksum = (checksum + temp) and 0FFFFh
-		end repeat
-		org address
-	end macro
+	iterate <name>, org, section
+		macro name? location*
+			local temp
+			repeat $@ - $$, address: $$
+				load temp: byte from address
+				checksum = (checksum + temp) and 0FFFFh
+			end repeat
+			name? location
+		end macro
+	end iterate
 	org 0D1A881h
 	postpone ?
 		assert checkloc = $% & 'Unexpected postpone before format directive'
