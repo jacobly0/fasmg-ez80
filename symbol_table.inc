@@ -21,7 +21,8 @@ macro private
 	end macro
 	struc (name) ? line&
 		name line
-		match : @, line*
+		match :: @, line*
+		else match : @, line*
 			if defined name
 				local value
 				value = name
