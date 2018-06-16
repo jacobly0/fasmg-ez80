@@ -1,4 +1,5 @@
 macro private
+	purge private
 	local output, context, latest
 	virtual as 'lab'
 		output::
@@ -52,4 +53,3 @@ macro private
 	end struc
 end macro
 private
-purge private

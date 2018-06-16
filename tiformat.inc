@@ -75,16 +75,16 @@ macro format?.ti? clause&
 	rb 42
 	dw sizeof all
 	org $ ; checksum from here
-	label all : checkloc - $%
+	label all: checkloc - $%
 	dw sizeof head, sizeof data
-	label head : data - $
+	label head: data - $
 	db type
 	dq name
 	db 0, flag
 	dw sizeof data
-	label data : checkloc - $%
+	label data: checkloc - $%
 	dw sizeof var
-	label var : checkloc - $%
+	label var: checkloc - $%
 	if defined exec
 		dw 07BEFh
 	end if
