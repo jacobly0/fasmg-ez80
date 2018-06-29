@@ -92,8 +92,8 @@ macro format?.ti? clause&
 	iterate <name>, org, section
 		macro name? location*
 			local temp
-			repeat $@ - $$, address: $$
-				load temp: byte from address
+			repeat $@ - $$
+				load temp: byte from $$ + %-1
 				checksum = (checksum + temp) and 0FFFFh
 			end repeat
 			name? location
