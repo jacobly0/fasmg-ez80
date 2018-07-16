@@ -1,0 +1,6 @@
+	ld	hl, _pointer
+	ld	hl, (hl)
+	jp	_function
+
+	.ref	_pointer
+	.ref	_function
