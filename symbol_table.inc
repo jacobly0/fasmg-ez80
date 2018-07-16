@@ -1,5 +1,4 @@
-macro private
-	purge private
+macro ?!
 	local output, context, latest
 	virtual as 'lab'
 		output::
@@ -52,5 +51,5 @@ macro private
 			end if
 		end match
 	end struc
+	purge ?
 end macro
-private

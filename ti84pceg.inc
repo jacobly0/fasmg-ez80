@@ -1,4 +1,4 @@
-macro private
+macro ?!
 	; assign needs to be local so that it is only
 	; defined once (no purge!) so that it can be
 	; forward referenced so that it can recurse
@@ -32,9 +32,8 @@ macro private
 			assign name, expr
 		end match
 	end macro
+	purge ?
 end macro
-private
-purge private
 
 macro .list?
 end macro

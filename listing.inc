@@ -1,5 +1,4 @@
-macro private
-	purge private
+macro ?!
 	local maxfilewidth, maxnumwidth, filewidth, numwidth, output, hex, before, after
 	maxfilewidth = 0
 	maxnumwidth = 0
@@ -87,5 +86,6 @@ macro private
 		outscope line
 		after
 	end macro
+	retaincomments
+	purge ?
 end macro
-private
