@@ -70,24 +70,26 @@ macro import $        : $        , \
 					end if
 				if 0
 			end macro
-			macro export?! function
-				end if
-					namespace ez80
-						if used global._#function
-							usedfunc = 1
-						global._#function:
-							jp offset
-							virtual
-								local name
-								emit 1: '_', `function
-								load name: $ - $$ from $$
-								global equ name = global._#function
-							end virtual
-						end if
-						offset = offset + word + @ez80.il
-					end namespace
-				if 0
-			end macro
+			iterate each, export, export_pointer
+				macro each?! function
+					end if
+						namespace ez80
+							if used global._#function
+								usedfunc = 1
+							global._#function := $ + %-1
+								jp offset
+								virtual
+									local name
+									emit 1: '_', `function
+									load name: $ - $$ from $$
+									global equ name = global._#function
+								end virtual
+							end if
+							offset = offset + word + @ez80.il
+						end namespace
+					if 0
+				end macro
+			end iterate
 			if 0
 				esc include! file
 			end if
