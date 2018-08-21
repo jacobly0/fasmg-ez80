@@ -379,11 +379,13 @@ macro import $        : $        , \
 						local line, addr
 						line = num1
 						addr = $
-						virtual debug
-							debug.uleb128 debug.LINE, line - debug.line, addr - debug.addr
-						end virtual
-						debug.line = line
-						debug.addr = addr
+						if line <> debug.line | addr <> debug.addr
+							virtual debug
+								debug.uleb128 debug.LINE, line - debug.line, addr - debug.addr
+							end virtual
+							debug.line = line
+							debug.addr = addr
+						end if
 					end macro
 				else
 					iterate name, ALIAS, BASE, BEGFUNC, BEGREC, CLASS, DEBUG,      \
