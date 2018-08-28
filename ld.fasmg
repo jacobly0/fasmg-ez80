@@ -4,66 +4,63 @@ define ez80 ez80
 namespace ez80
 	include 'ez80.inc'
 end namespace
-macro import $        : $        , \
-             $$       : $$       , \
-             and      : and      , \
-             assert   : assert   , \
-             at       : at       , \
-             break    : break    , \
-             define   : define   , \
-             defined  : defined  , \
-             display  : display  , \
-             dup      : dup      , \
-             else     : else     , \
-             emit     : emit     , \
-             end      : end      , \
-             equ      : equ      , \
-             err      : err      , \
-             esc      : esc      , \
-             eval     : eval     , \
-             ez80     : ez80     , \
-             from     : from     , \
-             if       : if       , \
-             include  : include  , \
-             irpv     : irpv     , \
-             iterate  : iterate  , \
-             label    : label    , \
-             lengthof : lengthof , \
-             load     : load     , \
-             local    : local    , \
-             macro    : macro    , \
-             match    : match    , \
-             mod      : mod      , \
-             namespace: namespace, \
-             not      : not      , \
-             or       : or       , \
-             purge    : purge    , \
-             rb       : rb       , \
-             reequ    : reequ    , \
-             repeat   : repeat   , \
-             restore  : restore  , \
-             restruc  : restruc  , \
-             rmatch   : rmatch   , \
-             segment  : segment  , \
-             shl      : shl      , \
-             shr      : shr      , \
-             sources  : sources  , \
-             store    : store    , \
-             struc    : struc    , \
-             used     : used     , \
-             virtual  : virtual  , \
-             while    : while    , \
-             xor      : xor
+macro ?! $        : $        , \
+         $$       : $$       , \
+         and      : and      , \
+         assert   : assert   , \
+         at       : at       , \
+         break    : break    , \
+         define   : define   , \
+         defined  : defined  , \
+         display  : display  , \
+         dup      : dup      , \
+         else     : else     , \
+         emit     : emit     , \
+         end      : end      , \
+         equ      : equ      , \
+         err      : err      , \
+         esc      : esc      , \
+         ez80     : ez80     , \
+         from     : from     , \
+         if       : if       , \
+         include  : include  , \
+         irpv     : irpv     , \
+         iterate  : iterate  , \
+         label    : label    , \
+         lengthof : lengthof , \
+         load     : load     , \
+         local    : local    , \
+         macro    : macro    , \
+         match    : match    , \
+         mod      : mod      , \
+         namespace: namespace, \
+         not      : not      , \
+         or       : or       , \
+         purge    : purge    , \
+         rb       : rb       , \
+         reequ    : reequ    , \
+         repeat   : repeat   , \
+         restore  : restore  , \
+         restruc  : restruc  , \
+         rmatch   : rmatch   , \
+         segment  : segment  , \
+         shl      : shl      , \
+         shr      : shr      , \
+         store    : store    , \
+         struc    : struc    , \
+         used     : used     , \
+         virtual  : virtual  , \
+         while    : while    , \
+         xor      : xor
 	local global, debug, files, segments, hex, output
 	global equ
-	files equ
 	segments equ
-	restore global, files, segments
+	restore global, segments
 
-	macro files.libs.parse file, offset, usedfunc, usedlib
+	macro files.libs.parse file, offset, usedfunc, usedlib*
 		local private
 		namespace private
-			macro library?! name, version
+			macro library?! name, version*
 				end if
 					if usedlib
 						emit 1: $C0, name, 0, version
@@ -71,7 +68,7 @@ macro import $        : $        , \
 				if 0
 			end macro
 			iterate each, export, export_pointer
-				macro each?! function
+				macro each?! function*
 					end if
 						namespace ez80
 							if used global._#function
@@ -95,23 +92,15 @@ macro import $        : $        , \
 			end if
 		end namespace
 	end macro
-	macro files.libs.handle arg
-		local file, usedfunc, offset, usedlib
-		rmatch lib =if? cond, arg
-			namespace segments
-				file := lib
-				usedfunc = cond
-			end namespace
-		else
-			file := arg
-			usedfunc = 0
-		end rmatch
+	macro files.libs.handle file*, require: 0
+		local usedfunc, offset, usedlib
+		usedfunc = require
 		offset = 0
 		files.libs.parse file, offset, usedfunc, usedlib
 		usedlib := usedfunc
 	end macro
 
-	macro files.deps.check file, usedsrc
+	macro files.srcs.check file, usedsrc*
 		local private
 		namespace private
 			iterate name, DEF, GLOBAL, PUBLIC, XDEF
@@ -132,7 +121,7 @@ macro import $        : $        , \
 			end if
 		end namespace
 	end macro
-	macro files.parse file
+	macro files.srcs.parse file*
 		local private
 		namespace private
 			virtual segments.code.area
@@ -428,29 +417,18 @@ macro import $        : $        , \
 			end virtual
 		end namespace
 	end macro
-	macro files.handle file
-		files.parse file
-	end macro
-	macro files.deps.handle arg
-		local file, usedsrc
-		rmatch dep =if? cond, arg
-			namespace segments
-				file := dep
-				usedsrc = cond
-			end namespace
-		else
-			file := arg
-			usedsrc = 0
-		end rmatch
+	macro files.srcs.handle file*, require: 0
+		local usedsrc
+		usedsrc = require
 		if ~usedsrc
-			files.deps.check file, usedsrc
+			files.srcs.check file, usedsrc
 		end if
 		if usedsrc
-			files.parse file
+			files.srcs.parse file
 		end if
 	end macro
 
-	macro symbol? args&
+	macro symbol? args*&
 		iterate arg, args
 			rmatch symbol == value, arg
 				namespace segments
@@ -468,40 +446,26 @@ macro import $        : $        , \
 		end iterate
 	end macro
 
-	iterate name, deps, libs
+	iterate name, srcs, libs
+		macro files.name.add file*, require
+			if `file and $FF = "'"
+				files.name equ file, require
+			else
+				files.name equ `file, require
+			end if
+		end macro
 		macro name? args*&
 			iterate arg, args
-				match first= rest, arg
-					name? first
-					name? rest
-				else if `arg and $FF = "'"
-					files.name equ arg
+				rmatch file= =if?= require, arg
+					files.name.add file, require
 				else
-					files.name equ `arg
-				end if
+					files.name.add arg
+				end rmatch
 			end iterate
 		end macro
 	end iterate
-	macro sources? args*&
-		iterate arg, args
-			rmatch file =if? cond, arg
-				namespace segments
-					if cond
-						sources? file
-					end if
-				end namespace
-			else match first= rest, arg
-				sources? first
-				sources? rest
-			else if `arg and $FF = "'"
-				files equ arg
-			else
-				files equ `arg
-			end if
-		end iterate
-	end macro
 
-	macro locate? args&
+	macro locate? args*&
 		iterate arg, args
 			rmatch name =at? location, arg
 				segments equ segments.name?
@@ -514,7 +478,7 @@ macro import $        : $        , \
 			end rmatch
 		end iterate
 	end macro
-	macro range? args&
+	macro range? args*&
 		iterate arg, args
 			rmatch name lower : upper, arg
 				locate name at lower
@@ -526,7 +490,7 @@ macro import $        : $        , \
 			end rmatch
 		end iterate
 	end macro
-	macro order? args&
+	macro order? args*&
 		match first =, second =, rest, args
 			order first, second
 			order second, rest
@@ -536,7 +500,7 @@ macro import $        : $        , \
 			err 'Not enough order arguments'
 		end match
 	end macro
-	macro merge? args&
+	macro merge? args*&
 		match name == list, args
 			order list
 			iterate segment, list
@@ -690,9 +654,7 @@ macro import $        : $        , \
 		virtual segments.name.area
 	end macro
 
-	if ~defined files
-		err 'Please pass the input files with -i\'sources "file1" [if "cond1"], "file2" [if "cond2"], ...\''
-	else if ~defined segments
+	if ~defined segments
 		err 'No segments defined'
 	else
 		restore output.base, output.top ; forbid forward reference
@@ -706,12 +668,13 @@ macro import $        : $        , \
 				end if
 			end namespace
 		end irpv
-		irpv file, files
-			files.handle file
+		irpv file, files.srcs
+			files = 0
+			files.srcs.handle file
 		end irpv
-		irpv file, files.deps
-			files.deps.handle file
-		end irpv
+		if ~defined files
+			err 'Please pass the input files with -i\'srcs "file1" [if require1], "file2" [if require2], ...\''
+		end if
 		irpv file, files.libs
 			virtual segments.libs.area
 				files.libs.handle file
@@ -766,6 +729,5 @@ macro import $        : $        , \
 			end irpv
 		end postpone
 	end if
+	purge ?
 end macro
-import
-purge import
