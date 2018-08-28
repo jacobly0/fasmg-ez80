@@ -95,12 +95,20 @@ macro import $        : $        , \
 			end if
 		end namespace
 	end macro
-	macro files.libs.handle file
-		local offset, usedfunc, usedlib
+	macro files.libs.handle arg
+		local file, usedfunc, offset, usedlib
+		rmatch lib =if? cond, arg
+			namespace segments
+				file := lib
+				usedfunc = cond
+			end namespace
+		else
+			file := arg
+			usedfunc = 0
+		end rmatch
 		offset = 0
-		usedfunc = 0
 		files.libs.parse file, offset, usedfunc, usedlib
-		usedlib = usedfunc
+		usedlib := usedfunc
 	end macro
 
 	macro files.deps.check file, usedsrc
@@ -423,10 +431,20 @@ macro import $        : $        , \
 	macro files.handle file
 		files.parse file
 	end macro
-	macro files.deps.handle file
-		local usedsrc
-		usedsrc = 0
-		files.deps.check file, usedsrc
+	macro files.deps.handle arg
+		local file, usedsrc
+		rmatch dep =if? cond, arg
+			namespace segments
+				file := dep
+				usedsrc = cond
+			end namespace
+		else
+			file := arg
+			usedsrc = 0
+		end rmatch
+		if ~usedsrc
+			files.deps.check file, usedsrc
+		end if
 		if usedsrc
 			files.parse file
 		end if
