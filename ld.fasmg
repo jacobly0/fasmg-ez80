@@ -12,7 +12,6 @@ macro ?! $        : $        , \
          break    : break    , \
          define   : define   , \
          defined  : defined  , \
-         display  : display  , \
          dup      : dup      , \
          else     : else     , \
          emit     : emit     , \
@@ -38,7 +37,6 @@ macro ?! $        : $        , \
          or       : or       , \
          purge    : purge    , \
          rb       : rb       , \
-         reequ    : reequ    , \
          repeat   : repeat   , \
          restore  : restore  , \
          restruc  : restruc  , \
@@ -455,8 +453,12 @@ macro ?! $        : $        , \
 			end if
 		end macro
 		macro name? args*&
+			local require
 			iterate arg, args
-				rmatch file= =if?= require, arg
+				rmatch file= =if?= cond, arg
+					namespace segments
+						require = cond
+					end namespace
 					files.name.add file, require
 				else
 					files.name.add arg
