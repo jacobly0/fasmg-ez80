@@ -1,5 +1,5 @@
 format ti executable protected program 'LIBRARY'
-srcs library.src if 1
+srcs library.src used
 libs library.lib
 locate LIBS at $D1A881
 order LIBS, CODE

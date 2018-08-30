@@ -40,7 +40,7 @@ macro ?! $        : $        , \
          repeat   : repeat   , \
          restore  : restore  , \
          restruc  : restruc  , \
-         rmatch   : rmatch   , \
+         rawmatch : rawmatch , \
          segment  : segment  , \
          shl      : shl      , \
          shr      : shr      , \
@@ -55,12 +55,12 @@ macro ?! $        : $        , \
 	segments equ
 	restore global, segments
 
-	macro files.libs.parse file, offset, usedfunc, usedlib*
+	macro files.libs.parse file, offset, isused, anyused*
 		local private
 		namespace private
 			macro library?! name, version*
 				end if
-					if usedlib
+					if anyused
 						emit 1: $C0, name, 0, version
 					end if
 				if 0
@@ -70,7 +70,7 @@ macro ?! $        : $        , \
 					end if
 						namespace ez80
 							if used global._#function
-								usedfunc = 1
+								isused = 1
 							global._#function := $ + %-1
 								jp offset
 								virtual
@@ -90,15 +90,14 @@ macro ?! $        : $        , \
 			end if
 		end namespace
 	end macro
-	macro files.libs.handle file*, require: 0
-		local usedfunc, offset, usedlib
-		usedfunc = require
+	macro files.libs.handle file, isused*
+		local offset, anyused
 		offset = 0
-		files.libs.parse file, offset, usedfunc, usedlib
-		usedlib := usedfunc
+		files.libs.parse file, offset, isused, anyused
+		anyused := isused
 	end macro
 
-	macro files.srcs.check file, usedsrc*
+	macro files.srcs.check file, isused*
 		local private
 		namespace private
 			iterate name, DEF, GLOBAL, PUBLIC, XDEF
@@ -107,7 +106,7 @@ macro ?! $        : $        , \
 						end if
 							iterate symbol, symbols
 								if used global.symbol
-									usedsrc = 1
+									isused = 1
 								end if
 							end iterate
 						if 0
@@ -242,14 +241,14 @@ macro ?! $        : $        , \
 				end iterate
 				iterate suffix, , .s?, .l?, .is?, .il?, .sis?, .sil?, .lis?, .lil?
 					irpv name, ez80.@ez80.oplist
-						rmatch rname, name
-							define rname rname
-							macro rname#suffix args&
+						rawmatch rawname, name
+							define rawname rawname
+							macro rawname#suffix args&
 								namespace ez80
 									name#suffix args
 								end namespace
 							end macro
-						end rmatch
+						end rawmatch
 					end irpv
 					macro LD? d, s*
 						namespace ez80
@@ -415,20 +414,18 @@ macro ?! $        : $        , \
 			end virtual
 		end namespace
 	end macro
-	macro files.srcs.handle file*, require: 0
-		local usedsrc
-		usedsrc = require
-		if ~usedsrc
-			files.srcs.check file, usedsrc
+	macro files.srcs.handle file, isused*
+		if ~isused
+			files.srcs.check file, isused
 		end if
-		if usedsrc
+		if isused
 			files.srcs.parse file
 		end if
 	end macro
 
 	macro symbol? args*&
 		iterate arg, args
-			rmatch symbol == value, arg
+			rawmatch symbol == value, arg
 				namespace segments
 					global.symbol := value
 					virtual
@@ -440,36 +437,41 @@ macro ?! $        : $        , \
 				end namespace
 			else
 				'Syntax error in symbol arguments'
-			end rmatch
+			end rawmatch
 		end iterate
 	end macro
 
 	iterate name, srcs, libs
-		macro files.name.add file*, require
+		macro files.name.add file, used*
+			local isused
+			rawmatch rawused, used
+				namespace segments
+					isused = rawused
+				end namespace
+			end rawmatch
 			if `file and $FF = "'"
-				files.name equ file, require
+				files.name equ file, isused
 			else
-				files.name equ `file, require
+				files.name equ `file, isused
 			end if
 		end macro
 		macro name? args*&
 			local require
 			iterate arg, args
-				rmatch file= =if?= cond, arg
-					namespace segments
-						require = cond
-					end namespace
-					files.name.add file, require
+				match file= =used? =if?= used, arg
+					files.name.add file, used
+				else match file= =used?, arg
+					files.name.add file, 1
 				else
-					files.name.add arg
-				end rmatch
+					files.name.add arg, 0
+				end match
 			end iterate
 		end macro
 	end iterate
 
 	macro locate? args*&
 		iterate arg, args
-			rmatch name =at? location, arg
+			rawmatch name =at? location, arg
 				segments equ segments.name?
 				namespace segments
 					name? := `name
@@ -477,19 +479,19 @@ macro ?! $        : $        , \
 				end namespace
 			else
 				err 'Syntax error in locate argument'
-			end rmatch
+			end rawmatch
 		end iterate
 	end macro
 	macro range? args*&
 		iterate arg, args
-			rmatch name lower : upper, arg
+			rawmatch name lower : upper, arg
 				locate name at lower
 				namespace segments
 					name.high? := upper
 				end namespace
 			else
 				err 'Syntax error in range arguments'
-			end rmatch
+			end rawmatch
 		end iterate
 	end macro
 	macro order? args*&

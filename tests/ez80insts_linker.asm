@@ -1,3 +1,3 @@
-srcs ez80insts.src if 1
+srcs ez80insts.src used
 locate code at 0
 include 'ld.fasmg'
