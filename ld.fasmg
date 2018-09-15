@@ -5,6 +5,7 @@ namespace ez80
 	include 'ez80.inc'
 end namespace
 macro ?! $        : $        , \
+         $@       : $@       , \
          $$       : $$       , \
          and      : and      , \
          assert   : assert   , \
@@ -706,6 +707,7 @@ macro ?! $        : $        , \
 				virtual area
 					top? := $
 					length? := $ - $$
+					initlen? := $@ - $$
 				end virtual
 				if ~defined high
 					if ~defined output.top | output.top < top
@@ -726,8 +728,8 @@ macro ?! $        : $        , \
 			irpv segment, segments
 				namespace segment
 					if ~defined high
-						load output: length from area: base
-						store output: length at base
+						load output: initlen from area: base
+						store output: initlen at base
 					end if
 				end namespace
 			end irpv
