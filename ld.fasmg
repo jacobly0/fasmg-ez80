@@ -367,15 +367,15 @@ macro ?! $        : $        , \
 					end macro
 					macro END?!
 						end if
-							local addr
-							segment code
-							addr = $
 							if debug.enabled
+								local addr
+								segment code
+								addr = $
 								virtual debug
 									debug.uleb128 debug.END, addr - debug.addr
 								end virtual
+								debug.addr = addr
 							end if
-							debug.addr = addr
 						if 0
 					end macro
 					macro ENDEF?
