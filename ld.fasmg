@@ -307,74 +307,92 @@ macro ?! $        : $        , \
 				end macro
 
 				if defined debug
+					debug.enabled = 0
 					debug.startAddr = $
-					iterate name, ALIAS, BASE, DEBUG, DEFINE, ENDREC, SPACE, TAG
+					iterate name, ALIAS, BASE, DEFINE, ENDREC, SPACE, TAG
 						macro name? str1*
-							virtual debug
-								debug.uleb128 debug.name
-								debug.string str1
-							end virtual
+							if debug.enabled
+								virtual debug
+									debug.uleb128 debug.name
+									debug.string str1
+								end virtual
+							end if
 						end macro
 					end iterate
 					iterate name, BEGFUNC, ENDFUNC
 						macro name? str1, num1, str2*
-							local line, addr
-							line = num1
-							addr = $
-							virtual debug
-								debug.uleb128 debug.name
-								debug.string str1, str2
-								debug.uleb128 line - debug.line, addr - debug.addr
-							end virtual
-							debug.line = line
-							debug.addr = addr
+							if debug.enabled
+								local line, addr
+								line = num1
+								addr = $
+								virtual debug
+									debug.uleb128 debug.name
+									debug.string str1, str2
+									debug.uleb128 line - debug.line, addr - debug.addr
+								end virtual
+								debug.line = line
+								debug.addr = addr
+							end if
 						end macro
 					end iterate
 					macro BEGREC? str1, num1*
-						virtual debug
-							debug.uleb128 debug.BEGREC
-							debug.string str1
-							debug.uleb128 num1
-						end virtual
+						if debug.enabled
+							virtual debug
+								debug.uleb128 debug.BEGREC
+								debug.string str1
+								debug.uleb128 num1
+							end virtual
+						end if
 					end macro
 					iterate <name,signed>, CLASS,u, DIM,u, LENGTH,u, REG,u, SIZE,u, TYPE,s, VALUE,s
 						macro name? num1*
-							virtual debug
-								debug.uleb128 debug.name
-								debug.signed#leb128 num1
-							end virtual
+							if debug.enabled
+								virtual debug
+									debug.uleb128 debug.name
+									debug.signed#leb128 num1
+								end virtual
+							end if
 						end macro
 					end iterate
+					macro DEBUG? str1*
+						virtual debug
+							debug.uleb128 debug.FILE, lengthof debug.source
+							emit 1: debug.source
+							debug.uleb128 debug.startAddr - debug.addr, debug.DEBUG
+							debug.string str1
+						end virtual
+						debug.enabled = 1
+						debug.line = 0
+						debug.addr = debug.startAddr
+					end macro
 					macro END?!
 						end if
 							local addr
 							segment code
 							addr = $
-							virtual debug
-								debug.uleb128 debug.END, addr - debug.addr
-							end virtual
+							if debug.enabled
+								virtual debug
+									debug.uleb128 debug.END, addr - debug.addr
+								end virtual
+							end if
 							debug.addr = addr
 						if 0
 					end macro
 					macro ENDEF?
-						virtual debug
-							debug.uleb128 debug.ENDEF
-						end virtual
+						if debug.enabled
+							virtual debug
+								debug.uleb128 debug.ENDEF
+							end virtual
+						end if
 					end macro
 					macro FILE? str1*
-						virtual debug
-							debug.uleb128 debug.FILE, lengthof str1
-							emit 1: str1
-							debug.uleb128 debug.startAddr - debug.addr
-						end virtual
-						debug.line = 0
-						debug.addr = debug.startAddr
+						debug.source = str1
 					end macro
 					macro LINE? num1*
 						local line, addr
 						line = num1
 						addr = $
-						if line <> debug.line | addr <> debug.addr
+						if line <> debug.line | addr <> debug.addr & debug.enabled
 							virtual debug
 								debug.uleb128 debug.LINE, line - debug.line, addr - debug.addr
 							end virtual
