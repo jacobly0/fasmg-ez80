@@ -139,7 +139,7 @@ macro ?! $        : $        , \
 					end macro
 				end iterate
 				iterate name, COPY, INCLUDE
-					macro name? path*
+					macro name?! path*
 						include path
 					end macro
 				end iterate
@@ -281,7 +281,7 @@ macro ?! $        : $        , \
 						SBC? reg, reg
 					end macro
 				end iterate
-				macro COMMENT? delim*&
+				macro COMMENT?! delim*&
 					end match
 					local inside
 					inside = 0
