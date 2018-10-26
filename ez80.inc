@@ -231,7 +231,7 @@ macro inst! @name*, @params&
 		end iterate
 		load @temp: $ - $$ from $$
 	end virtual
-	esc macro @name? @params
+	esc macro @name?: @params
 		local before, after, noerr
 		label before
 		eval @temp

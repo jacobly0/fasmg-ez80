@@ -146,7 +146,9 @@ macro ?! $        : $        , \
 				iterate name, EXTERN, EXTERNAL, REF, XREF
 					macro name? symbols*&
 						match list : space, symbols
-							name? list
+							iterate symbol, list
+								symbol := global.symbol
+							end iterate
 						else
 							iterate symbol, symbols
 								symbol := global.symbol
@@ -513,7 +515,7 @@ macro ?! $        : $        , \
 			end rawmatch
 		end iterate
 	end macro
-	macro order? args*&
+	macro order?: args*&
 		match first =, second =, rest, args
 			order first, second
 			order second, rest

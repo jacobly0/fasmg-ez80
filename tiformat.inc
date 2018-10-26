@@ -1,6 +1,6 @@
 macro format?.ti? clause&
 	local all, checkloc, checksum, cplx, data, exec, flag, head, name, process, prot, temp, type, ext, var
-	macro process setting
+	macro process: setting
 		match first rest, setting
 			process first
 			process rest

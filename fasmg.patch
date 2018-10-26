@@ -52,8 +52,8 @@ Index: source/version.inc
 --- source/version.inc
 +++ source/version.inc
 @@ -1,1 +1,1 @@
--VERSION equ "ialrk"
+-VERSION equ "ibh5n"
 \ No newline at end of file
-+VERSION equ "iavd0-ez80"
++VERSION equ "ice6x-ez80"
 \ No newline at end of file
 
