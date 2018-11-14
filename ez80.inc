@@ -59,7 +59,7 @@ macro @ez80.nest @inst*&
 	end if
 	@inst
 end macro
-macro @ez80.check @ind*, @expr&
+macro @ez80.check: @ind*, @expr&
 	match @left ) @right, <@expr>
 		match @ ( @mid, <@left>
 			@ez80.check @ind, @mid @right
