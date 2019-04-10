@@ -233,11 +233,11 @@ macro inst! @name*, @params&
 	end virtual
 	esc macro @name?: @params
 		local before, after, noerr
-		label before
+		before := $
 		eval @temp
 end macro
 macro end?.inst!
-		label after
+		after := $
 		if ~defined noerr & before = after
 			err 'invalid arguments'
 		end if
