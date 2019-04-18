@@ -1,7 +1,8 @@
 include 'ez80.inc'
 macro test jump, cond&
 	iterate offset, -$81, -$80, -2, -1, 0, 1, $7f, $80
-		if -$80 <= offset & offset < $80 | `jump <> 'jr'
+		if (-$80 <= offset & offset < $80 | `jump <> 'jr') & \
+		   (offset | `jump <> 'jq')
 			jump cond $ + 2 + offset
 		else
 			jp cond $ + 2 + offset
