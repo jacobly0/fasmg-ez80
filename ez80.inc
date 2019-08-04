@@ -430,7 +430,7 @@ inst ld, @dst, @src*
 					end if
 					if dst metadata 1 scale 1 > 300o
 						@ez80.emit idxpre dst, byte opc, idxoff dst
-					else
+					else if ~dst scale 0
 						@ez80.emit <byte 355o, opc>
 					end if
 				else
@@ -469,7 +469,7 @@ inst ld, @dst, @src*
 					end if
 					if src metadata 1 scale 1 > 300o
 						@ez80.emit idxpre src, byte opc, idxoff src
-					else
+					else if ~src scale 0
 						@ez80.emit <byte 355o, opc>
 					end if
 				end if
