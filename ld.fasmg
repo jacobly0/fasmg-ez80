@@ -255,6 +255,7 @@ macro ?! $        : $        , \
 					end irpv
 					macro LD? d, s*
 						namespace ez80
+							local dst, src
 							@ez80.classify dst, d
 							@ez80.classify src, s
 							if ~dst.ind & dst eq dst element 1 & dst @ez80.is_reg @ez80.wreg \
