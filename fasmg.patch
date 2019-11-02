@@ -2,7 +2,7 @@ Index: docs/manual.txt
 ==================================================================
 --- docs/manual.txt
 +++ docs/manual.txt
-@@ -73,13 +73,12 @@
+@@ -75,13 +75,12 @@
  quote character. This defines a quoted string and it may contain any of the
  special characters, whitespace and even semicolons, as it ends only when the
  same character that was used to start it is encountered. The quotes that are
@@ -23,7 +23,7 @@ Index: source/reader.inc
 ==================================================================
 --- source/reader.inc
 +++ source/reader.inc
-@@ -183,14 +183,19 @@
+@@ -180,14 +180,19 @@
  	je	broken_string
  	test	al,al
  	jz	broken_string
@@ -52,8 +52,8 @@ Index: source/version.inc
 --- source/version.inc
 +++ source/version.inc
 @@ -1,1 +1,1 @@
--VERSION equ "ioa3m"
+-VERSION equ "iq4zv"
 \ No newline at end of file
-+VERSION equ "iomiq-ez80"
++VERSION equ "iq6lp-ez80"
 \ No newline at end of file
 
