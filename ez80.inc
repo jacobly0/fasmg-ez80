@@ -1,9 +1,13 @@
 define @ez80 @ez80
 macro @ez80.suffix @l, @il*
-	@ez80.l = @l
-	@ez80.il = @il
-	@ez80.lil = @ez80.l or @ez80.il shl 1
-	@ez80.pre = @ez80.lil or @ez80.lil shl 3 or 100o
+	rawmatch @@l @@il, @l @il
+		namespace @ez80
+			l = @@l
+			il = @@il
+			lil = l or il shl 1
+			pre = lil or lil shl 3 or 100o
+		end namespace
+	end rawmatch
 end macro
 macro @ez80.byte @values*&
 	db @values
@@ -57,28 +61,28 @@ macro @ez80.nest @inst*&
 	if defined @ez80.pre
 		@ez80.pre =: @ez80.pre
 	end if
-	@inst
+	@ez80.@inst
 end macro
-macro @ez80.check: @ind*, @expr&
+macro @ez80.check: @res*, @expr&
 	match @left ) @right, <@expr>
 		match @ ( @mid, <@left>
-			@ez80.check @ind, @mid @right
+			@ez80.check @res, @mid @right
 		else
-			@ind =: 0
+			@res.ind =: 0
 		end match
 	else
-		@ind =: 1
+		@res.ind =: 1
 	end match
 end macro
-macro @ez80.classify @val, @ind*, @arg&
+macro @ez80.classify @res, @arg&
 	match, @arg
-		@ind =: 0
+		@res.ind =: 0
 	else
-		@val =: @arg
+		@res =: @arg
 		match ( @ ), @arg
-			@ez80.check @ind, @
+			@ez80.check @res, @
 		else
-			@ind =: 0
+			@res.ind =: 0
 		end match
 	end match
 end macro
@@ -174,54 +178,29 @@ element af'?
 
 @ez80.is_reg equ metadata 1 element 1 eq
 
-macro inst! @name*, @params&
+macro @ez80.inst! @name*, @params&
 	restore @name?
 	define @name? @name?
 	@ez80.oplist equ @name?
-	namespace @name?
-		macro s? @args&
-			@ez80.suffix 0, @ez80.il
+	macro @name? @args&
+		@ez80.@name @args
+	end macro
+	iterate <@suffix*,@l,@il>, s,0,il, l,1,il, is,l,0, il,l,1, sis,0,0, lis,1,0, sil,0,1, lil,1,1
+		macro @name?.@suffix? @args&
+			@ez80.suffix @l, @il
 			@name? @args
 		end macro
-		macro l? @args&
-			@ez80.suffix 1, @ez80.il
-			@name? @args
-		end macro
-		macro is? @args&
-			@ez80.suffix @ez80.l, 0
-			@name? @args
-		end macro
-		macro il? @args&
-			@ez80.suffix @ez80.l, 1
-			@name? @args
-		end macro
-		macro sis? @args&
-			@ez80.suffix 0, 0
-			@name? @args
-		end macro
-		macro lis? @args&
-			@ez80.suffix 1, 0
-			@name? @args
-		end macro
-		macro sil? @args&
-			@ez80.suffix 0, 1
-			@name? @args
-		end macro
-		macro lil? @args&
-			@ez80.suffix 1, 1
-			@name? @args
-		end macro
-	end namespace
+	end iterate
 	local @temp
 	virtual
 		iterate @param, @params
 			match @arg @, @param*
 				@temp = string `@arg shr 8
-				db 'local ', @temp, ', ', @temp, 'ind', 10
+				db 'local ', @temp, 10
 				match @arg &, @param
 					db 'iterate @, ', `@arg, 10, 9, 'indx %%-%+1', 10, 9
 				end match
-				db '@ez80.classify ', @temp, ', ', @temp, 'ind, '
+				db '@ez80.classify ', @temp, ', '
 				match @@ &, @param
 					db '@', 10, 'end iterate', 10
 				else
@@ -231,12 +210,13 @@ macro inst! @name*, @params&
 		end iterate
 		load @temp: $ - $$ from $$
 	end virtual
-	esc macro @name?: @params
+	esc macro @ez80.@name: @params
 		local before, after, noerr
 		before := $
+		;display @temp, 10
 		eval @temp
 end macro
-macro end?.inst!
+macro end?.@ez80.inst!
 		after := $
 		if ~defined noerr & before = after
 			err 'invalid arguments'
@@ -304,14 +284,14 @@ iterate <@name, @opc*>,       \
          otirx, <355o, 303o>, \
          indrx, <355o, 312o>, \
          otdrx, <355o, 313o>
-	inst @name
+	@ez80.inst @name
 		@ez80.emit <byte @opc>
-	end inst
+	end @ez80.inst
 end iterate
 
 iterate @name, inc, dec
-	inst @name, @reg*
-		if regind
+	@ez80.inst @name, @reg*
+		if reg.ind
 			if reg relativeto reg element 1 & reg @ez80.is_reg @ez80.wreg \
 			 & reg metadata 1 scale 0 = 040o
 				@ez80.emit idxpre reg, byte 063o + %, idxoff reg
@@ -326,35 +306,35 @@ iterate @name, inc, dec
 				                        and 070o or % + 3
 			end if
 		end if
-	end inst
+	end @ez80.inst
 end iterate
 
-inst ex, @arg1, @arg2*
-	if arg1ind
-		if arg2ind
+@ez80.inst ex, @arg1, @arg2*
+	if arg1.ind
+		if arg2.ind
 			err 'invalid indirection'
 		else if arg1 eq sp? & arg2 eq arg2 element 1                          \
 		      & arg2 @ez80.is_reg @ez80.wreg & arg2 metadata 1 scale 0 = 040o
 			@ez80.emit idxpre arg2, byte 343o
 		end if
-	else if arg2ind
-		@ez80.nest ex? @arg2, @arg1
+	else if arg2.ind
+		@ez80.nest ex @arg2, @arg1
 	else if (arg1 eq af? & arg2 eq af'?) | (arg1 eq af'? & arg2 eq af?)
 		@ez80.emit byte 010o
 	else if (arg1 eq de? & arg2 eq hl?) | (arg1 eq hl? & arg2 eq de?)
 		@ez80.emit byte 353o
 	end if
-end inst
+end @ez80.inst
 
-inst djnz, @addr*
-	if addrind
+@ez80.inst djnz, @addr*
+	if addr.ind
 		err 'invalid indirection'
 	else
 		@ez80.emit byte 020o, offset addr - after
 	end if
-end inst
-inst jr, @arg1*, @arg2
-	if arg1ind | arg2ind
+end @ez80.inst
+@ez80.inst jr, @arg1*, @arg2
+	if arg1.ind | arg2.ind
 		err 'invalid indirection'
 	else if ~defined arg2
 		@ez80.emit byte 030o, offset arg1 - after
@@ -365,10 +345,10 @@ inst jr, @arg1*, @arg2
 			           offset arg2 - after
 		end if
 	end if
-end inst
-inst jq, @arg1*, @arg2
+end @ez80.inst
+@ez80.inst jq, @arg1*, @arg2
 	local off, keep
-	if arg1ind | arg2ind
+	if arg1.ind | arg2.ind
 		err 'invalid indirection'
 	else if ~defined arg2
 		off = arg1 - before - 2
@@ -404,13 +384,13 @@ inst jq, @arg1*, @arg2
 			           word arg2
 		end if
 	end if
-end inst
+end @ez80.inst
 
-inst ld, @dst, @src*
+@ez80.inst ld, @dst, @src*
 	local opc
-	if dstind & srcind
+	if dst.ind & src.ind
 		err 'invalid indirection'
-	else if dstind
+	else if dst.ind
 		if dst relativeto dst element 1 & dst @ez80.is_reg @ez80.wreg
 			if dst metadata 1 scale 0 = 040o
 				if src eq src element 1 & src @ez80.is_reg @ez80.breg \
@@ -449,7 +429,7 @@ inst ld, @dst, @src*
 				@ez80.emit <byte 355o, src metadata 1 scale 0 or 103o>, word dst
 			end if
 		end if
-	else if srcind
+	else if src.ind
 		if ~dst eq dst element 1
 		else if src relativeto src element 1 & src @ez80.is_reg @ez80.wreg
 			if src metadata 1 scale 0 = 040o
@@ -519,15 +499,15 @@ inst ld, @dst, @src*
 			@ez80.emit <byte 355o, 307o>
 		end if
 	end if
-end inst
+end @ez80.inst
 
-inst add, @arg1*, @arg2
+@ez80.inst add, @arg1*, @arg2
 	if ~defined arg2
-		@ez80.nest a?, @arg1
-	else if arg1ind
+		@ez80.nest add a?, @arg1
+	else if arg1.ind
 		err 'invalid indirection'
 	else if arg1 eq a?
-		if arg2ind
+		if arg2.ind
 			if arg2 relativeto arg2 element 1 & arg2 @ez80.is_reg @ez80.wreg \
 			 & arg2 metadata 1 scale 0 = 040o
 				@ez80.emit idxpre arg2, byte 206o, idxoff arg2
@@ -539,7 +519,7 @@ inst add, @arg1*, @arg2
 		else
 			@ez80.emit <byte 306o, arg2>
 		end if
-	else if arg2ind
+	else if arg2.ind
 		err 'invalid indirection'
 	else if arg1 eq arg1 element 1 & arg1 @ez80.is_reg @ez80.wreg             \
 	      & arg2 eq arg2 element 1 & arg1 @ez80.is_reg @ez80.wreg             \
@@ -548,19 +528,19 @@ inst add, @arg1*, @arg2
 	       | arg1 metadata 1 scale 1 =  arg2 metadata 1 scale 1)
 		@ez80.emit idxpre arg1, byte arg2 metadata 1 scale 0 or 011o
 	end if
-end inst
+end @ez80.inst
 iterate @name, adc, sbc
-	inst @name, @arg1*, @arg2
+	@ez80.inst @name, @arg1*, @arg2
 		if ~defined arg2
 			if arg1 @ez80.is_reg @ez80.wreg
-				@ez80.nest hl?, @arg1
+				@ez80.nest @name hl?, @arg1
 			else
-				@ez80.nest a?, @arg1
+				@ez80.nest @name a?, @arg1
 			end if
-		else if arg1ind
+		else if arg1.ind
 			err 'invalid indirection'
 		else if arg1 eq a?
-			if arg2ind
+			if arg2.ind
 				if arg2 relativeto arg2 element 1 \
 				 & arg2 @ez80.is_reg @ez80.wreg   \
 				 & arg2 metadata 1 scale 0 = 040o
@@ -573,14 +553,14 @@ iterate @name, adc, sbc
 			else
 				@ez80.emit <byte 276o + % shl 4, arg2>
 			end if
-		else if arg2ind
+		else if arg2.ind
 			err 'invalid indirection'
 		else if arg1 eq hl? & arg2 eq arg2 element 1 \
 		      & arg2 @ez80.is_reg @ez80.wreg         \
 		      & arg2 metadata 1 scale 1 and 002o
 			@ez80.emit <byte 355o, arg2 metadata 1 scale 0 + 122o - % shl 3>
 		end if
-	end inst
+	end @ez80.inst
 end iterate
 iterate <@name, @opc*>, \
          sub,   220o,   \
@@ -588,9 +568,9 @@ iterate <@name, @opc*>, \
          xor,   250o,   \
          or,    260o,   \
          cp,    270o
-	inst @name, @arg1*, @arg2
+	@ez80.inst @name, @arg1*, @arg2
 		if ~defined arg2
-			if arg1ind
+			if arg1.ind
 				if arg1 relativeto arg1 element 1 \
 				 & arg1 @ez80.is_reg @ez80.wreg   \
 				 & arg1 metadata 1 scale 0 = 040o
@@ -604,16 +584,16 @@ iterate <@name, @opc*>, \
 			else
 				@ez80.emit <byte @opc or 106o, arg1>
 			end if
-		else if arg1ind
+		else if arg1.ind
 			err 'invalid indirection'
 		else if arg1 eq a?
-			@ez80.nest @name? @arg2
+			@ez80.nest @name @arg2
 		end if
-	end inst
+	end @ez80.inst
 end iterate
-inst tst, @arg1*, @arg2
+@ez80.inst tst, @arg1*, @arg2
 	if ~defined arg2
-		if arg1ind
+		if arg1.ind
 			if arg1 eq hl?
 				@ez80.emit <byte 355o, 064o>
 			end if
@@ -624,59 +604,59 @@ inst tst, @arg1*, @arg2
 		else
 			@ez80.emit <byte 355o, 144o, arg1>
 		end if
-	else if arg1ind
+	else if arg1.ind
 		err 'invalid indirection'
 	else if arg1 eq a?
-		@ez80.nest tst? @arg2
+		@ez80.nest tst @arg2
 	end if
-end inst
+end @ez80.inst
 
-inst ret, @cond
+@ez80.inst ret, @cond
 	if ~defined cond
 		@ez80.emit byte 311o
-	else if condind
+	else if cond.ind
 		err 'invalid indirection'
 	else if cond eq cond element 1 & cond @ez80.is_reg @ez80.breg \
 	      & cond metadata 1 scale 0 and 007o = 001o
 		@ez80.emit byte cond metadata 1 scale 0 and 070o or 300o
 	end if
-end inst
+end @ez80.inst
 iterate @name, pop, push
-	inst @name, @reg*&
-		while defined reg + regind
-			if regind
+	@ez80.inst @name, @reg*&
+		while defined reg + reg.ind
+			if reg.ind
 				err 'invalid indirection'
 			else if reg eq reg element 1 & reg @ez80.is_reg @ez80.wreg \
 			      & reg metadata 1 scale 1 and 001o
 				@ez80.emit idxpre reg,                                  \
 				           byte reg metadata 1 scale 0 + 275o + % shl 2
 			else if `@name = 'push'
-				@ez80.nest pea? reg
+				@ez80.nest pea reg
 			else
 				err 'invalid argument'
 			end if
-			restore reg, regind
+			restore reg, reg.ind
 		end while
-	end inst
+	end @ez80.inst
 end iterate
 
-inst jp, @arg1*, @arg2
+@ez80.inst jp, @arg1*, @arg2
 	if ~defined arg2
-		if ~arg1ind
+		if ~arg1.ind
 			@ez80.emit byte 303o, word arg1
 		else if arg1 eq arg1 element 1 & arg1 @ez80.is_reg @ez80.wreg \
 		      & arg1 metadata 1 scale 0 = 040o
 			@ez80.emit idxpre arg1, byte 351o
 		end if
-	else if arg1ind | arg2ind
+	else if arg1.ind | arg2.ind
 		err 'invalid indirection'
 	else if arg1 eq arg1 element 1 & arg1 @ez80.is_reg @ez80.breg \
 	      & arg1 metadata 1 scale 0 and 007o = 001o
 		@ez80.emit byte arg1 metadata 1 scale 0 and 070o or 302o, word arg2
 	end if
-end inst
-inst call, @arg1*, @arg2
-	if arg1ind | arg2ind
+end @ez80.inst
+@ez80.inst call, @arg1*, @arg2
+	if arg1.ind | arg2.ind
 		err 'invalid indirection'
 	else if ~defined arg2
 		@ez80.emit byte 315o, word arg1
@@ -684,16 +664,16 @@ inst call, @arg1*, @arg2
 	      & arg1 metadata 1 scale 0 and 007o = 001o
 		@ez80.emit byte arg1 metadata 1 scale 0 and 070o or 304o, word arg2
 	end if
-end inst
-inst rst, @addr*
-	if addrind
+end @ez80.inst
+@ez80.inst rst, @addr*
+	if addr.ind
 		err 'invalid indirection'
 	else if addr = addr and 070o
 		@ez80.emit byte addr or 307o
 	else
 		err 'invalid rst target'
 	end if
-end inst
+end @ez80.inst
 
 iterate <@name, @opc*>, \
          rlc,   000o,   \
@@ -703,11 +683,11 @@ iterate <@name, @opc*>, \
          sla,   040o,   \
          sra,   050o,   \
          srl,   070o
-	inst @name, @reg*
+	@ez80.inst @name, @reg*
 		if `@name = 'rl' & ~defined @ez80.pre & ~elementsof reg
 			rb long? * reg
 			define noerr
-		else if regind
+		else if reg.ind
 			if reg relativeto reg element 1 & reg @ez80.is_reg @ez80.wreg \
 			 & reg metadata 1 scale 0 = 040o
 				@ez80.emit idxpre reg, byte 313o, idxoff reg, byte @opc or 006o
@@ -716,13 +696,13 @@ iterate <@name, @opc*>, \
 		      & reg metadata 1 scale 1 = 003o
 			@ez80.emit <byte 313o, reg metadata 1 scale 0 and 007o or @opc>
 		end if
-	end inst
+	end @ez80.inst
 end iterate
 iterate @name, bit, res, set
-	inst @name, @bit, @reg*
-		if bitind
+	@ez80.inst @name, @bit, @reg*
+		if bit.ind
 			err 'invalid indirection'
-		else if regind
+		else if reg.ind
 			if reg relativeto reg element 1 & reg @ez80.is_reg @ez80.wreg \
 			 & reg metadata 1 scale 0 = 040o
 				@ez80.emit idxpre reg, byte 313o, idxoff bit shr 3 + reg, \
@@ -740,13 +720,13 @@ iterate @name, bit, res, set
 				                    or 001o and not bit shr 3>
 			end if
 		end if
-	end inst
+	end @ez80.inst
 end iterate
 
-inst out, @port, @reg*
-	if ~portind
+@ez80.inst out, @port, @reg*
+	if ~port.ind
 		err 'missing indirection'
-	else if regind
+	else if reg.ind
 		err 'invalid indirection'
 	else if port eq bc? | port eq c?
 		if reg eq reg element 1 & reg @ez80.is_reg @ez80.breg \
@@ -759,13 +739,13 @@ inst out, @port, @reg*
 	else if reg eq a?
 		@ez80.emit <byte 323o, port>
 	end if
-end inst
-inst in, @reg*, @port
+end @ez80.inst
+@ez80.inst in, @reg*, @port
 	if ~defined port
-		@ez80.nest in? f?, @reg
-	else if regind
+		@ez80.nest in f?, @reg
+	else if reg.ind
 		err 'invalid indirection'
-	else if ~portind
+	else if ~port.ind
 		err 'missing indirection'
 	else if port eq bc? | port eq c? & reg eq reg element 1               \
 	      & reg @ez80.is_reg @ez80.breg & reg metadata 1 scale 1 and 002o
@@ -774,41 +754,41 @@ inst in, @reg*, @port
 	else if reg eq a?
 		@ez80.emit <byte 333o, port>
 	end if
-end inst
-inst in0, @reg*, @port
+end @ez80.inst
+@ez80.inst in0, @reg*, @port
 	if ~defined port
-		@ez80.nest in0? f?, @reg
-	else if regind
+		@ez80.nest in0 f?, @reg
+	else if reg.ind
 		err 'invalid indirection'
-	else if ~portind
+	else if ~port.ind
 		err 'missing indirection'
 	else if reg eq reg element 1 & reg @ez80.is_reg @ez80.breg \
 	      & reg metadata 1 scale 1 and 002o
 		@ez80.emit <byte 355o, reg metadata 1 scale 0 shl 3 and 070o \
 		                    or 000o, port>
 	end if
-end inst
-inst out0, @port, @reg*
-	if ~portind
+end @ez80.inst
+@ez80.inst out0, @port, @reg*
+	if ~port.ind
 		err 'missing indirection'
-	else if regind
+	else if reg.ind
 		err 'invalid indirection'
 	else if reg eq reg element 1 & reg @ez80.is_reg @ez80.breg \
 	      & reg metadata 1 scale 1 = 003o
 		@ez80.emit <byte 355o, reg metadata 1 scale 0 shl 3 and 070o \
 		                    or 001o, port>
 	end if
-end inst
-inst tstio, @src*
-	if srcind
+end @ez80.inst
+@ez80.inst tstio, @src*
+	if src.ind
 		err 'invalid indirection'
 	else
 		@ez80.emit <byte 355o, 164o, src>
 	end if
-end inst
+end @ez80.inst
 
-inst lea, @dst, @src*
-	if dstind | srcind
+@ez80.inst lea, @dst, @src*
+	if dst.ind | src.ind
 		err 'invalid indirection'
 	else if dst eq dst element 1 & src relativeto src element 1            \
 	      & dst @ez80.is_reg @ez80.wreg & src @ez80.is_reg @ez80.wreg      \
@@ -824,19 +804,19 @@ inst lea, @dst, @src*
 		end if
 		@ez80.emit <byte 355o, opc>, offset src scale 0
 	end if
-end inst
-inst pea, @src*
-	if srcind
+end @ez80.inst
+@ez80.inst pea, @src*
+	if src.ind
 		err 'invalid indirection'
 	else if src relativeto src element 1 & src @ez80.is_reg @ez80.wreg \
 	 & src metadata 1 scale 1 > 300o
 		@ez80.emit <byte 355o, src metadata 1 scale 1 shr 5 and 001o + 145o>, \
 		           offset src scale 0
 	end if
-end inst
+end @ez80.inst
 
-inst im, @mode*
-	if modeind
+@ez80.inst im, @mode*
+	if mode.ind
 		err 'invalid indirection'
 	else if mode = 0
 		@ez80.emit <byte 355o, 106o>
@@ -847,16 +827,16 @@ inst im, @mode*
 	else
 		err 'invalid mode'
 	end if
-end inst
+end @ez80.inst
 
-inst mlt, @reg*
-	if regind
+@ez80.inst mlt, @reg*
+	if reg.ind
 		err 'invalid indirection'
 	else if reg eq reg element 1 & reg @ez80.is_reg @ez80.wreg \
 	      & reg metadata 1 scale 1 and 002o
 		@ez80.emit <byte 355o, reg metadata 1 scale 0 or 114o>
 	end if
-end inst
+end @ez80.inst
 
 purge inst
 purge end?.inst

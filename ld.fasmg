@@ -239,7 +239,7 @@ macro ?! $        : $        , \
 				end macro
 				iterate register, B, NZ, Z, NC, C, PO, PE, P, M, D, E,  \
 				                  H, IXH, IYH, L, IXL, IYL, F, A, I, R, \
-				                  MB, BC, DE, HL, IX, IY, SP, AF, AF'
+				                  MB, BC, DE, HL, IX, IY, SP, AF, AF' ;'
 					register? := ez80.register?
 				end iterate
 				iterate suffix, , .s?, .l?, .is?, .il?, .sis?, .sil?, .lis?, .lil?
@@ -255,19 +255,19 @@ macro ?! $        : $        , \
 					end irpv
 					macro LD? d, s*
 						namespace ez80
-							@ez80.classify dst, dstind, d
-							@ez80.classify src, srcind, s
-							if ~dstind & dst eq dst element 1 & dst @ez80.is_reg @ez80.wreg \
-							 & dst metadata 1 scale 1 and 001o & ~srcind                    \
+							@ez80.classify dst, d
+							@ez80.classify src, s
+							if ~dst.ind & dst eq dst element 1 & dst @ez80.is_reg @ez80.wreg \
+							 & dst metadata 1 scale 1 and 001o & ~src.ind                    \
 							 & src relativeto src element 1 & src @ez80.is_reg @ez80.wreg
 								if src metadata 1 scale 1 = 007o
-									PUSH? s
-									POP? d
+									@ez80.push s
+									@ez80.pop d
 								else
-									LEA? d, s
+									@ez80.lea d, s
 								end if
 							else
-								LD? d, s
+								@ez80.ld d, s
 							end if
 						end namespace
 					end macro
