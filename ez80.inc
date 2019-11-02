@@ -182,7 +182,7 @@ element ix?: @ez80.wreg * 335o + 040o
 element iy?: @ez80.wreg * 375o + 040o
 element sp?: @ez80.wreg * 006o + 060o
 element af?: @ez80.wreg * 001o + 060o
-element af'?
+element af'? ; '
 
 @ez80.is_reg equ metadata 1 element 1 eq
 
@@ -221,7 +221,6 @@ macro @ez80.inst! @name*, @params&
 	esc macro @ez80.@name: @params
 		local before, after, noerr
 		before := $
-		;display @temp, 10
 		eval @temp
 end macro
 macro end?.@ez80.inst!
@@ -355,7 +354,7 @@ end @ez80.inst
 	end if
 end @ez80.inst
 @ez80.inst jq, @arg1*, @arg2
-	local off, keep
+	local off, forward
 	if arg1.ind | arg2.ind
 		err 'invalid indirection'
 	else if ~defined arg2
@@ -363,10 +362,10 @@ end @ez80.inst
 		if defined @ez80.pre
 			off = off - 1
 		end if
-		if defined noerr & ~arg1 eq after | defined keep
-			define keep
+		if ~definite @arg1
+			define forward
 		end if
-		if defined after & arg1 eq after & ~defined keep
+		if defined forward + after & arg1 eq after
 			define noerr
 		else if ~elementsof off & -200o <= off & off < 200o
 			@ez80.emit opc 030o, offset off
@@ -379,10 +378,10 @@ end @ez80.inst
 		if defined @ez80.pre
 			off = off - 1
 		end if
-		if defined noerr & ~arg2 eq after | defined keep
-			define keep
+		if ~definite @arg2
+			define forward
 		end if
-		if defined after & arg2 eq after & ~defined keep
+		if defined forward + after & arg2 eq after
 			define noerr
 		else if arg1 metadata 1 scale 0 < 040o & ~elementsof off \
 		      & -200o <= off & off < 200o

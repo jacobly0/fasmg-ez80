@@ -13,6 +13,7 @@ macro ?! $        : $        , \
          break    : break    , \
          define   : define   , \
          defined  : defined  , \
+         definite : definite , \
          dup      : dup      , \
          else     : else     , \
          emit     : emit     , \
@@ -170,12 +171,8 @@ macro ?! $        : $        , \
 					end macro
 				end iterate
 				struc (symbol) EQU? expr*
-					local error
-					if ~defined error & defined symbol | error
+					if definite symbol
 						err 'Symbol "', `symbol, '" already defined'
-						error = 1
-					else
-						error = 0
 					end if
 					?symbol = expr
 				end struc
