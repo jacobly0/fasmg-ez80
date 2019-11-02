@@ -12,11 +12,11 @@ addons:
       - libc6-i386
 
 before_install:
-  - export PATH="$PATH:$PWD/bin" PS4="$ "
+  - export PS4="$ "
 
 before_script:
-  - install_fasmg
-  - fetch_ti84pce
+  - bin/install_fasmg
+  - bin/fetch_ti84pce
 
 script:
   - tests/test
