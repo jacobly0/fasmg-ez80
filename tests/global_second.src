@@ -1,9 +1,9 @@
 ; Zilog eZ80 ANSI C Compiler Release 3.4
 ; -nomodsect -peephole -globalopt -localcse -optsize
 ; -const=ROM 
-	FILE	".\GLOBAL_SECOND.C"
-	.assume ADL=1
-	SEGMENT CODE
+;	FILE	".\GLOBAL_SECOND.C"
+	assume ADL=1
+	section .text
 ;    1	void first(void);
 ;    2	void second(void) { first(); }
 _second:
@@ -20,6 +20,6 @@ _second:
 ;       Spill Code: 0 (instruction)
 
 
-	XREF _first:ROM
-	XDEF _second
-	END
+	EXTERN	_first
+	PUBLIC	_second
+;	END

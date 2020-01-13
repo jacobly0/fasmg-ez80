@@ -1,6 +1,8 @@
+include 'tiformat.inc'
 format ti executable protected program 'LIBRARY'
-srcs library.src used
-libs library.lib
-locate LIBS at $D1A881
-order LIBS, CODE
-include 'ld.fasmg'
+source 'library.src'
+library 'library.lib'
+locate .libs at $D1A881
+order .libs, .text
+require _main
+include 'ld.alm'
