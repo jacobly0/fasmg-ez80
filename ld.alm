@@ -182,6 +182,30 @@ macro ?! $              : $              , \
 		jno loop
 	end calminstruction
 
+	calminstruction weak?! symbols*&
+		proxy globals
+		local global
+	loop:
+		split symbol, symbols
+		arrange global, @globals.symbol
+		check used symbol | used global
+		jno notrequired
+		check definite global
+		jno required
+		compute global, global
+		publish symbol:, global
+		jump notrequired
+	required:
+		compute symbol, symbol
+		publish global:, symbol
+		check definite required
+		jyes notrequired
+		publish required:, offset
+	notrequired:
+		match , symbols
+		jno loop
+	end calminstruction
+
 	calminstruction private?! symbols*&
 	loop:
 		split symbol, symbols
