@@ -176,10 +176,10 @@ macro ?! isreg: metadata 1 element 1 eq @ez80
 	end macro
 
 	iterate <suffixsize: 2,suffixname,suffixencoding,suffixadjustment,wordsize: =@ez80.=ws>, \
-	                     3,        s?,          100o,     or @ez80.il,                     , \
-	                     3,        l?,          111o,     or @ez80.il,                     , \
-	                     3,       is?,          100o,     or @ez80.l ,               =word?, \
-	                     3,       il?,          122o,     or @ez80.l ,               =long?, \
+	                     3,        s?,          100o,              il,                     , \
+	                     3,        l?,          111o,              il,                     , \
+	                     3,       is?,          100o,              l ,               =word?, \
+	                     3,       il?,          122o,              l ,               =long?, \
 	                     3,      sis?,          100o,                ,               =word?, \
 	                     3,      lis?,          111o,                ,               =word?, \
 	                     3,      sil?,          122o,                ,               =long?, \
@@ -187,7 +187,7 @@ macro ?! isreg: metadata 1 element 1 eq @ez80
 		match adjustment, suffixadjustment
 			macro calminstruction?.emitsuffix?
 				local suffix
-				compute suffix, suffixencoding suffixadjustment
+				compute suffix, suffixencoding or @ez80.adjustment
 				emit 1: suffix
 			end macro
 		else match encoding, suffixencoding
@@ -265,9 +265,15 @@ macro ?! isreg: metadata 1 element 1 eq @ez80
 				load value: size from $$
 			end virtual
 			repeat 1, size: size, value: value
-				@ez80.calminstruction name.suffixname
-					emit size: value suffixadjustment
-				end calminstruction
+				match adjustment, suffixadjustment
+					@ez80.calminstruction name.suffixname
+						emit size: value =or? =@ez80.=adjustment
+					end calminstruction
+				else
+					@ez80.calminstruction name.suffixname
+						emit size: value
+					end calminstruction
+				end match
 			end repeat
 		end iterate
 
