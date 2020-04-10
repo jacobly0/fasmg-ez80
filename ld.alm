@@ -272,13 +272,13 @@ macro ?! $              : $              , \
 				calminstruction name?! symbol*
 					proxy globals, defers
 					local global, defer
-					arrange symbol, _#symbol
+					arrange symbol, =_#symbol
 					arrange global, @globals.symbol
 					check used global
 					jno unused
 					arrange defer, =public symbol
 					publish :@defers, defer
-					arrange defer, symbol :== $ + %-1
+					arrange defer, symbol :== =$ + %-1
 					publish :@defers, defer
 					arrange defer, =jp offset
 					publish :@defers, defer
