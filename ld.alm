@@ -130,6 +130,7 @@ macro ?! $              : $              , \
 		split expression, expressions
 		match symbol == value, expression
 		jno errsyntax
+		publish :@globals, symbol
 		arrange symbol, @globals.symbol
 		compute value, value
 		publish symbol:, value
@@ -177,6 +178,7 @@ macro ?! $              : $              , \
 		arrange global, @globals.symbol
 		check used symbol | used global
 		jno notrequired
+		publish :@globals, symbol
 		compute symbol, symbol
 		publish global:, symbol
 		check definite required
@@ -212,10 +214,12 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction private?! symbols*&
+		proxy globals
 	loop:
 		split symbol, symbols
 		check used symbol
 		jno notrequired
+		publish :@globals, symbol
 		check definite required
 		jyes notrequired
 		publish required:, offset
@@ -373,8 +377,8 @@ macro ?! $              : $              , \
 			end irpv
 			virtual output.map
 				emit byte?: 'Section', output.longest - lengthof 'Section' + 1 dup? ' ', \
-				           'Base   Top    High   Length', 10, output.longest dup? '-',  \
-				           4 dup? ' ------', '-', 10
+				           'Base   Top    High   Length', 10, output.longest dup? '-',   \
+				           ' ------ ------ ------ -------', 10
 				irpv section, sections
 					emit byte?: section, output.longest - lengthof section dup? ' '
 					output.hex section.base?
@@ -382,10 +386,28 @@ macro ?! $              : $              , \
 					if defined section.high?
 						output.hex section.high?
 					else
-						emit byte?: 7 dup? ' '
+						emit byte?: '       '
 					end if
 					output.hex section.length?, ' '
 					emit byte?: 'h', 10
+				end irpv
+
+				output.longest = lengthof 'Label'
+				irpv global, globals
+					if output.longest < lengthof `global
+						output.longest = lengthof `global
+					end if
+				end irpv
+				emit byte?: 10, 'Label', output.longest - lengthof 'Label' + 3 dup? ' ', \
+				            'Value', 10, output.longest dup? '-', '   ------', 10
+				irpv global, globals
+					emit byte?: `global, output.longest - lengthof `global + 1 dup? ' ', '='
+					if defined global
+						output.hex global
+					else
+						output.hex globals.global
+					end if
+					emit byte?: 10
 				end irpv
 			end virtual
 		end if
