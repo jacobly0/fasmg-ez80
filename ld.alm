@@ -17,7 +17,7 @@ macro ?! $              : $              , \
          used           : used           , \
          virtual        : virtual
 	local endscript, script, read, required, makesection, sections, \
-	      globals, sources, libraries, offset, defers, output
+	      declared, globals, sources, libraries, offset, defers, output
 	element endscript
 
 	include 'commands.alm'
@@ -178,10 +178,15 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction public?! symbols*&
-		proxy globals
-		local global
+		proxy declared, globals
+		local declare, global
 	loop:
 		split symbol, symbols
+		arrange declare, @declared.symbol
+		check definite declare
+		jyes declared
+		publish declare:, offset
+	declared:
 		arrange global, @globals.symbol
 		check used symbol | used global
 		jno notrequired
@@ -248,6 +253,11 @@ macro ?! $              : $              , \
 	notrequired:
 		match , symbols
 		jno loop
+	end calminstruction
+
+	calminstruction ifextern?! symbol*
+		proxy declared
+		execute =if? =defined? @declared.symbol
 	end calminstruction
 
 	if defined output.dbg
