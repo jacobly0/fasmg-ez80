@@ -2,31 +2,43 @@ macro ?! $              : $              , \
          $$             : $$             , \
          $@             : $@             , \
          @ez80          : @ez80          , \
+         and            : and            , \
+         byte           : byte           , \
          calminstruction: calminstruction, \
          defined        : defined        , \
          definite       : definite       , \
+         dup            : dup            , \
+         dword          : dword          , \
          else           : else           , \
+         emit           : emit           , \
          end            : end            , \
          equ            : equ            , \
          err            : err            , \
+         from           : from           , \
          if             : if             , \
          irpv           : irpv           , \
          iterate        : iterate        , \
+         load           : load           , \
+         macro          : macro          , \
          namespace      : namespace      , \
+         or             : or             , \
          rawmatch       : rawmatch       , \
+         shl            : shl            , \
          used           : used           , \
-         virtual        : virtual
-	local endscript, script, read, required, makesection, sections, \
-	      declared, globals, sources, libraries, offset, defers, output
+         virtual        : virtual        , \
+         word           : word
+	local endscript, script, read, required, lines, locs, addrs, makesection,  \
+	      sections, declared, globals, splitfiles, libraries, sources, offset, \
+	      defers, output
 	element endscript
 
 	include 'commands.alm'
 	include 'ez80.alm'
 
-	required equ required.0
 	offset = endscript
 
-	iterate name, locate, order, range, library, source, require, provide, map, dbg
+	iterate name, locate, order, range, split, precious, \
+	              library, source, require, provide, map
 		macro name? line&
 			if definite endscript
 				err 'linker script command in source'
@@ -44,17 +56,17 @@ macro ?! $              : $              , \
 
 	calminstruction makesection name*, base*
 		proxy sections
-		local @base, symbol
-		arrange symbol, @sections.name?
+		local @base, @name
+		arrange @name, @sections.name?
 		stringify name
-		publish symbol:, name
-		publish :@sections, symbol
-		arrange @base, symbol.=base?
+		publish @name:, name
+		publish :@sections, @name
+		arrange @base, @name.=base?
 		compute base, base
 		publish @base:, base
-		execute =virtual =at @base
-		execute symbol.=area?::
-		execute =end =virtual
+		execute =virtual? =at? @base
+		execute @name.=area?::
+		execute =end? =virtual?
 	end calminstruction
 
 	calminstruction script.locate expression*
@@ -93,6 +105,45 @@ macro ?! $              : $              , \
 	errsyntax:
 		stringify expression
 		err 'invalid syntax in linker command: range ', @expression
+	end calminstruction
+
+	calminstruction script.split names*&
+		proxy splitfiles, makesection, sections, names, extension
+		local extension, @splitfile, previous
+		match extension : names, names
+		jno errsyntax
+		arrange @splitfile, @splitfiles.=extension?
+		publish :@splitfiles, @splitfile
+		stringify extension
+		execute =virtual? =as? @extension
+		execute @splitfile.=area::
+		execute =end? =virtual?
+		split name, names
+		execute @makesection name, @splitfile.=secoff
+		jump enter
+	loop:
+		split name, names
+		execute @makesection name, previous.=base? + previous.=length?
+	enter:
+		arrange previous, name
+		arrange name, @sections.name?
+		publish :@splitfile, name
+		arrange name, name.=split?
+		publish name:, @splitfile
+		jyes loop
+		exit
+	errsyntax:
+		stringify names
+		err 'invalid syntax in linker command: split ', @names
+	end calminstruction
+
+	calminstruction script.precious names*&
+		proxy sections
+	loop:
+		split name, names
+		arrange name, @sections.name?.=precious?
+		publish name:, offset
+		jyes loop
 	end calminstruction
 
 	iterate <name*,list*>, library,libraries, source,sources
@@ -149,16 +200,11 @@ macro ?! $              : $              , \
 		execute =end? =virtual?
 	end calminstruction
 
-	calminstruction script.dbg
-		proxy output
-		execute =virtual? =as? 'dbg'
-		execute @output.=dbg::
-		execute =end? =virtual?
-	end calminstruction
-
 	irpv line, script
 		script.line
 	end irpv
+
+	required equ required.0
 
 	calminstruction read?! file*
 		proxy include
@@ -171,10 +217,10 @@ macro ?! $              : $              , \
 	calminstruction section?! name*
 		proxy sections
 		next required
-		execute =end =virtual
-		execute =end =if
-		execute =if =defined required
-		execute =virtual @sections.name?.=area?
+		execute =end? =virtual?
+		execute =end? =if?
+		execute =if? =definite? @sections.name?.=precious? | =defined? required
+		execute =virtual? @sections.name?.=area?
 	end calminstruction
 
 	calminstruction public?! symbols*&
@@ -260,26 +306,406 @@ macro ?! $              : $              , \
 		execute =if? =defined? @declared.symbol
 	end calminstruction
 
-	if defined output.dbg
-		calminstruction file? args&
-		end calminstruction
+	calminstruction file?! args
+		local fileno, dirname, filename, options, index, variable
+		match fileno= dirname= filename options?, args
+		jyes dirname
+		match fileno= filename, args
+		jno done ; ignore for compatibility
+		compute index, lengthof filename shl 3
+	splitloop:
+		check index
+		jno dirname
+		compute index, index - 8
+		check filename shr index and $FF = '/'
+		jno splitloop
+		compute dirname, string filename and (1 shl index - 1)
+		compute filename, string filename shr (index + 8)
+	dirname:
+		compute dirname, dirname
+	filename:
+		compute filename, filename
+	fileno:
+		compute fileno, fileno
+		arrange variable, lines.fileno.=dirname
+		publish variable:, dirname
+		arrange variable, lines.fileno.=filename
+		publish variable:, filename
+		arrange variable, lines.=numfiles
+		check variable < fileno
+		jno done
+		publish variable, fileno
+	done:
+	end calminstruction
 
-		calminstruction loc? args&
-		end calminstruction
-	end if
+	calminstruction loc? args&
+		local pc
+		take locs, args
+		compute pc, $
+		take addrs, pc
+	end calminstruction
+
+	calminstruction output.uleb128 values*&
+		proxy enc
+		local enc
+	iter:
+		split value, values
+		compute value, value
+		check value >= 0
+		jyes enter
+		err 'output.uleb128 argument is negative'
+	loop:
+		compute enc, value and $7F or $80
+		execute =emit? =byte?: @enc
+		compute value, value shr 7
+	enter:
+		check value < $80
+		jno loop
+		compute enc, value
+		execute =emit? =byte?: @enc
+		match , values
+		jno iter
+	end calminstruction
+
+	calminstruction output.leb128 values*&
+		proxy enc, value
+		local enc
+	iter:
+		split value, values
+		compute value, value
+		jump enter
+	loop:
+		compute enc, value and $7F or $80
+		execute =emit? =byte?: @enc
+		compute value, value shr 7
+	enter:
+		check value >= -$40 & value < $40
+		jno loop
+		compute enc, value and $7F
+		execute =emit? =byte?: @enc
+		match , values
+		jno iter
+	end calminstruction
+
+	calminstruction output.debug_line
+		; Table 7.6: Attribute form encodings
+		once compute DW_FORM_addr             , 0x01
+		once compute DW_FORM_block2           , 0x03
+		once compute DW_FORM_block4           , 0x04
+		once compute DW_FORM_data2            , 0x05
+		once compute DW_FORM_data4            , 0x06
+		once compute DW_FORM_data8            , 0x07
+		once compute DW_FORM_string           , 0x08
+		once compute DW_FORM_block            , 0x09
+		once compute DW_FORM_block1           , 0x0a
+		once compute DW_FORM_data1            , 0x0b
+		once compute DW_FORM_flag             , 0x0c
+		once compute DW_FORM_sdata            , 0x0d
+		once compute DW_FORM_strp             , 0x0e
+		once compute DW_FORM_udata            , 0x0f
+		once compute DW_FORM_ref_addr         , 0x10
+		once compute DW_FORM_ref1             , 0x11
+		once compute DW_FORM_ref2             , 0x12
+		once compute DW_FORM_ref4             , 0x13
+		once compute DW_FORM_ref8             , 0x14
+		once compute DW_FORM_ref_udata        , 0x15
+		once compute DW_FORM_indirect         , 0x16
+		once compute DW_FORM_sec_offset       , 0x17
+		once compute DW_FORM_exprloc          , 0x18
+		once compute DW_FORM_flag_present     , 0x19
+		once compute DW_FORM_strx             , 0x1a
+		once compute DW_FORM_addrx            , 0x1b
+		once compute DW_FORM_ref_sup4         , 0x1c
+		once compute DW_FORM_strp_sup         , 0x1d
+		once compute DW_FORM_data16           , 0x1e
+		once compute DW_FORM_line_strp        , 0x1f
+		once compute DW_FORM_ref_sig8         , 0x20
+		once compute DW_FORM_implicit_const   , 0x21
+		once compute DW_FORM_loclistx         , 0x22
+		once compute DW_FORM_rnglistx         , 0x23
+		once compute DW_FORM_ref_sup8         , 0x24
+		once compute DW_FORM_strx1            , 0x25
+		once compute DW_FORM_strx2            , 0x26
+		once compute DW_FORM_strx3            , 0x27
+		once compute DW_FORM_strx4            , 0x28
+		once compute DW_FORM_addrx1           , 0x29
+		once compute DW_FORM_addrx2           , 0x2a
+		once compute DW_FORM_addrx3           , 0x2b
+		once compute DW_FORM_addrx4           , 0x2c
+		; Table 7.25: Line number standard opcode encodings
+		once compute DW_LNS_copy              , 0x01
+		once compute DW_LNS_advance_pc        , 0x02
+		once compute DW_LNS_advance_line      , 0x03
+		once compute DW_LNS_set_file          , 0x04
+		once compute DW_LNS_set_column        , 0x05
+		once compute DW_LNS_negate_stmt       , 0x06
+		once compute DW_LNS_set_basic_block   , 0x07
+		once compute DW_LNS_const_add_pc      , 0x08
+		once compute DW_LNS_fixed_advance_pc  , 0x09
+		once compute DW_LNS_set_prologue_end  , 0x0a
+		once compute DW_LNS_set_epilogue_begin, 0x0b
+		once compute DW_LNS_set_isa           , 0x0c
+		; Table 7.26: Line number extended opcode encodings
+		once compute DW_LNE_end_sequence      , 0x01
+		once compute DW_LNE_set_address       , 0x02
+		once compute DW_LNE_set_discriminator , 0x04
+		once compute DW_LNE_lo_user           , 0x80
+		once compute DW_LNE_hi_user           , 0xff
+		; Table 7.27: Line number header entry format encodings
+		once compute DW_LNCT_path             , 0x1
+		once compute DW_LNCT_directory_index  , 0x2
+		once compute DW_LNCT_timestamp        , 0x3
+		once compute DW_LNCT_size             , 0x4
+		once compute DW_LNCT_MD5              , 0x5
+		once compute DW_LNCT_lo_user          , 0x2000
+		once compute DW_LNCT_hi_user          , 0x3fff
+
+		proxy line_base, line_range, opcode_base
+		once compute line_base                , -5
+		once compute line_range               , 14
+		once compute opcode_base              , DW_LNS_set_isa + 1
+		once compute const_add_pc_off         , ($FF - opcode_base) / line_range
+		once compute const_add_pc_adj         , const_add_pc_off * line_range
+
+		proxy output, numfiles, numdirs, loc, addroff, lineoff, value, address
+		local @after, @len, len, @headlen, headlen,                       \
+		      opcidx, @opclen, opclen, numfiles, dirs, numdirs,           \
+		      cur, curdirname, curdirno, other, otherdirname, otherdirno, \
+		      loc, nextaddr, addroff, nextline, lineoff, options, value,  \
+		      address, file, line, column, is_stmt, isa
+		take loc, locs
+		jno skip
+		arrange @after, lines.=after
+		arrange @len, lines.=len
+		arrange @headlen, lines.=headlen
+		compute opcidx, 0
+		arrange numfiles, lines.=numfiles
+		compute numfiles, numfiles
+		arrange dirs,
+		compute numdirs, 0
+		compute cur, 0
+		jump dirnoenter
+	outerdirnoloop:
+		arrange curdirname, lines.cur.=dirname
+		check lengthof curdirname
+		jno nodirno
+		compute other, 0
+	innerdirnoloop:
+		compute other, other + 1
+		arrange otherdirname, lines.other.=dirname
+		check curdirname = otherdirname
+		jno innerdirnoloop
+		arrange curdirno, lines.cur.=dirno
+		arrange otherdirno, lines.other.=dirno
+		check definite otherdirno
+		jyes copydirno
+		arrange dirs, dirs curdirname, 0,
+		compute numdirs, numdirs + 1
+		compute otherdirno, numdirs
+		jump setdirno
+	copydirno:
+		compute otherdirno, otherdirno
+		jump setdirno
+	nodirno:
+		compute otherdirno, 0
+	setdirno:
+		publish curdirno, otherdirno
+	dirnoenter:
+		compute cur, cur + 1
+		check cur > numfiles
+		jno outerdirnoloop
+		arrange address, lines.=before
+		compute file, 1
+		compute line, 1
+		compute column, 0
+		compute is_stmt, 1
+		compute isa, 0
+		execute =emit? =dword?: @len
+		compute len, $
+		execute =emit? =word?: 5
+		execute =emit? =byte?: =long?, 0
+		execute =emit? =dword?: @headlen
+		compute headlen, $
+		execute =emit? =byte?: 1, 1,                                           \
+		                       is_stmt, @line_base, @line_range, @opcode_base, \
+		                       0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1,             \
+		                       1
+		execute @output.=uleb128 DW_LNCT_path, DW_FORM_string, @numdirs
+		execute =emit? =byte?: dirs 2
+		execute @output.=uleb128 DW_LNCT_path, DW_FORM_string,           \
+		                         DW_LNCT_directory_index, DW_FORM_udata, \
+		                         @numfiles
+		compute cur, 0
+		jump fileenter
+	fileloop:
+		execute =emit? =byte?: lines.cur.=filename, 0
+		execute @output.=uleb128 lines.cur.=dirno
+	fileenter:
+		compute cur, cur + 1
+		check cur > numfiles
+		jno fileloop
+		compute headlen, $ - headlen
+		publish @headlen:, headlen
+	reverse:
+		take nextaddr, addrs
+		take loc, locs
+		jyes reverse
+		execute =emit? =byte?: 0, 4, DW_LNE_set_address
+		execute =emit? =long?: @address
+	locloop:
+		match value= nextline= options?, loc
+		jno errsyntax
+		compute value, value
+		check file = value
+		jyes nextopt
+		execute =emit? =byte?: DW_LNS_set_file
+		execute @output.=leb128 @value
+		compute file, value
+		jump nextopt
+	optloop:
+		match =basic_block? options?, options
+		jyes basic_block
+		match =prologue_end? options?, options
+		jyes prologue_end
+		match =epilogue_begin? options?, options
+		jyes epilogue_begin
+		match =is_stmt?= value options?, options
+		jyes is_stmt
+		match =isa?= value options?, options
+		jyes isa
+		match =discriminator?= value options?, options
+		jyes discriminator
+		match =view?= value options?, options
+		jyes view
+		match value options?, options
+		jno errsyntax
+		compute value, value
+		check column = value
+		jyes nextopt
+		execute =emit? =byte?: DW_LNS_set_column
+		execute @output.=leb128 @value
+		compute column, value	
+		jump nextopt
+	basic_block:
+		execute =emit? =byte?: DW_LNS_set_basic_block
+		jump nextopt
+	prologue_end:
+		execute =emit? =byte?: DW_LNS_set_prologue_end
+		jump nextopt
+	epilogue_begin:
+		execute =emit? =byte?: DW_LNS_set_epilogue_begin
+		jump nextopt
+	is_stmt:
+		compute value, value
+		check is_stmt = value
+		jyes nextopt
+		execute =emit? =byte?: DW_LNS_negate_stmt
+		compute is_stmt, value
+		jump nextopt
+	isa:
+		compute value, value
+		check isa = value
+		jyes nextopt
+		execute =emit? =byte?: DW_LNS_set_isa
+		execute @output.=leb128 @value
+		compute isa, value
+		jump nextopt
+	discriminator:
+		compute value, value
+		check value
+		jno nextopt
+		compute opcidx, opcidx + 1
+		arrange @opclen, lines.=opc.opcidx
+		execute =emit? =byte?: 0
+		execute @output.=leb128 @opclen
+		compute opclen, $
+		execute =emit? =byte?: DW_LNE_set_discriminator
+		execute @output.=leb128 @value
+		compute opclen, $ - opclen
+		publish @opclen:, opclen
+		jump nextopt
+	view:
+		jump nextopt
+	nextopt:
+		match , options
+		jno optloop
+		compute lineoff, nextline - line - line_base
+		compute line, nextline
+		check lineoff >= 0 & lineoff < line_range
+		jyes nearline
+		execute =emit? =byte?: DW_LNS_advance_line
+		execute @output.=leb128 @lineoff
+		compute lineoff, 0
+	nearline:
+		compute addroff, nextaddr - address
+		compute address, nextaddr
+		compute value, opcode_base + line_range * addroff + lineoff
+		check value > $FF
+		jno special
+		compute value, value - const_add_pc_adj
+		check value > $FF
+		jyes advpc
+		execute =emit? =byte?: DW_LNS_const_add_pc
+		jump special
+	advpc:
+		execute =emit? =byte?: DW_LNS_advance_pc
+		execute @output.=leb128 @addroff
+		compute value, opcode_base + lineoff
+	special:
+		execute =emit? =byte?: @value
+		take , loc
+		take , nextaddr
+		take loc, loc
+		jyes locloop
+		compute addroff, @after - address
+		check addroff
+		jno done
+		check @addroff = const_add_pc_off
+		jno lastadvpc
+		execute =emit? =byte?: DW_LNS_const_add_pc
+		jump done
+	lastadvpc:
+		execute =emit? =byte?: DW_LNS_advance_pc
+		execute @output.=leb128 @addroff
+	done:
+		execute =emit? =byte?: 0, 1, DW_LNE_end_sequence
+		jump success
+	errsyntax:
+		stringify loc
+		execute =err? 'invalid syntax in loc macro: loc ', @loc
+		; define len anyway to avoid an undefined
+		; forward ref error from hiding the above error
+	success:
+		compute len, $ - len
+		publish @len:, len
+	skip:
+	end calminstruction
 
 	irpv source, sources
+		lines equ lines.%
+		lines.%.numfiles = 0
+		virtual sections..text?.area?
+			lines.%.before := $
+		end virtual
+
 		namespace ?%
 			if 0
 				virtual
 					section .text
 					read source
+
+					section .debug_line
+					output.debug_line
 				end virtual
 			end if
 		end namespace
+
+		virtual sections..text?.area?
+			lines.%.after := $
+		end virtual
 	end irpv
 
-	if defined libraries
+	if definite libraries
 		namespace libraries
 			calminstruction library?! name*, version*
 				proxy defers
@@ -338,7 +764,7 @@ macro ?! $              : $              , \
 			section.initialized? := $@ - $$
 		end virtual
 
-		if ~defined section.high?
+		if ~definite section.split? & ~definite section.high?
 			if ~definite output.base | output.base > section.base?
 				output.base = section.base?
 			end if
@@ -348,24 +774,133 @@ macro ?! $              : $              , \
 		end if
 	end irpv
 
+	namespace output.elf
+		ELFCLASS32          := 1
+		ELFDATA2LSB         := 1
+		ELFOSABI_STANDALONE := 255
+		ET_EXEC             := 2
+		EM_Z80              := 220
+		EF_Z80_EZ80         := 1
+		EV_CURRENT          := 1
+		SHT_NULL            := 0
+		SHT_PROGBITS        := 1
+		SHT_SYMTAB          := 2
+		SHT_STRTAB          := 3
+		SHT_NOBITS          := 8
+		SHF_WRITE           := 1 shl 0
+		SHF_ALLOC           := 1 shl 1
+		SHF_EXECINSTR       := 1 shl 2
+		SHF_MERGE           := 1 shl 4
+		SHF_STRINGS         := 1 shl 5
+		macro info flags, entsize, section
+			flags = 0
+			entsize = 0
+			if section = '.data' | section = '.bss'
+				flags = flags or output.elf.SHF_WRITE
+			end if
+			if section and (1 shl (6 shl 3) - 1) <> '.debug'
+				flags = flags or output.elf.SHF_ALLOC
+				if section <> '.data' & section <> '.rodata' & section <> '.bss'
+					flags = flags or output.elf.SHF_EXECINSTR
+				end if
+			end if
+			if section = '.comment' | section = '.debug_str'
+				flags = flags or output.elf.SHF_MERGE or output.elf.SHF_STRINGS
+				entsize = 1
+			end if
+		end macro
+	end namespace
+
+	irpv splitfile, splitfiles
+		namespace splitfile
+			virtual area
+			entry:
+
+			phoff:
+				phentsize := $ - phoff
+			phnum := 0
+
+				emit byte?: $7F, 'ELF', output.elf.ELFCLASS32, output.elf.ELFDATA2LSB, \
+				           output.elf.EV_CURRENT, output.elf.ELFOSABI_STANDALONE,      \
+				           8 dup? 0
+				emit word?: output.elf.ET_EXEC, output.elf.EM_Z80
+				emit dword?: output.elf.EV_CURRENT, entry, phoff, shoff, \
+				             output.elf.EF_Z80_EZ80
+				emit word?: ehsize, phentsize, phnum, shentsize, shnum, shstrndx
+			ehsize:
+
+			secoff:
+				irpv section, splitfile
+					load output.data: section.initialized? from? section.area?: section.base?
+					emit byte?: output.data
+				end irpv
+
+			shstroff:
+				emit byte?: 0
+				irpv section, sections
+					if ~definite section.split? & section.length?
+					nameoff.section := $ - .
+						emit byte?: section, 0
+					end if
+				end irpv
+				irpv section, splitfile
+					if section.length?
+					nameoff.section := $ - .
+						emit byte?: section, 0
+					end if
+				end irpv
+			shstrnameoff := $ - .
+				emit byte?: '.shstrtab', 0
+			shstrsize := $ - .
+
+			shoff:
+				emit shentsize: 0
+				shcur = 1
+				irpv section, sections
+					if ~definite section.split? & section.length?
+						shcur = shcur + 1
+						output.elf.info flags, entsize, section
+						emit dword?: nameoff.section, output.elf.SHT_NOBITS, flags, \
+						             section.base?, 0, section.length?, 0, 0, 0, entsize
+					end if
+				end irpv
+				irpv section, splitfile
+					if section.length?
+						shcur = shcur + 1
+						output.elf.info flags, entsize, section
+						emit dword?: nameoff.section, output.elf.SHT_PROGBITS, flags, \
+						             0, section.base?, section.length?, 0, 0, 0, entsize
+					end if
+				end irpv
+				shstrndx := shcur
+			shstrent:
+				emit dword?: shstrnameoff, output.elf.SHT_STRTAB, 0, 0, \
+				             shstroff, shstrsize, 0, 0, 0, 0
+				shentsize := $ - .
+				shnum := shcur + 1
+			end virtual
+		end namespace
+	end irpv
+
 	org output.base
 	rb output.top - $
 	postpone ?
 		irpv section, sections
-			if ~defined section.high?
-				load output.data: section.initialized? from section.area?: section.base?
-				store output.data: section.initialized? at section.base?
+			if definite section.split?
+			else if ~definite section.high?
+				load output.data: section.initialized? from? section.area?: section.base?
+				store output.data: section.initialized? at? section.base?
 			else if section.top? > section.high?
 				repeat 1, length: section.length?,            \
 				          more: section.top? - section.high?, \
 				          maximum: section.high? - section.base?
 					err 'section ', section, ' is ', `length, ' bytes, ', `more,      \
-              ' bytes larger than the maximum size of ', `maximum, ' bytes'
+					    ' bytes larger than the maximum size of ', `maximum, ' bytes'
 				end repeat
 			end if
 		end irpv
 
-		if defined output.map
+		if definite output.map
 			calminstruction output.hex value*, leading: '0', digits: 6
 				local digit, char
 				execute =emit? =byte?: ' '
@@ -401,14 +936,15 @@ macro ?! $              : $              , \
 				end if
 			end irpv
 			virtual output.map
-				emit byte?: 'Section', output.longest - lengthof 'Section' + 1 dup? ' ', \
-				           'Base   Top    High   Length', 10, output.longest dup? '-',   \
-				           ' ------ ------ ------ -------', 10
+				emit byte?: 'Section',                                        \
+				            output.longest - lengthof 'Section' + 1 dup? ' ', \
+				            'Base   Top    High   Length', 10,                \
+				            output.longest dup? '-', ' ------ ------ ------ -------', 10
 				irpv section, sections
 					emit byte?: section, output.longest - lengthof section dup? ' '
 					output.hex section.base?
 					output.hex section.top?
-					if defined section.high?
+					if definite section.high?
 						output.hex section.high?
 					else
 						emit byte?: '       '
@@ -423,11 +959,13 @@ macro ?! $              : $              , \
 						output.longest = lengthof `global
 					end if
 				end irpv
-				emit byte?: 10, 'Label', output.longest - lengthof 'Label' + 3 dup? ' ', \
+				emit byte?: 10, 'Label',                                    \
+				            output.longest - lengthof 'Label' + 3 dup? ' ', \
 				            'Value', 10, output.longest dup? '-', '   ------', 10
 				irpv global, globals
-					emit byte?: `global, output.longest - lengthof `global + 1 dup? ' ', '='
-					if defined global
+					emit byte?: `global, output.longest - lengthof `global + 1 dup? ' ', \
+					            '='
+					if definite global
 						output.hex global
 					else
 						output.hex globals.global
