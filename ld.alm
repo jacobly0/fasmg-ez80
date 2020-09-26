@@ -529,12 +529,11 @@ macro ?! $              : $              , \
 		execute =emit? =byte?: 1, 1,                                           \
 		                       is_stmt, @line_base, @line_range, @opcode_base, \
 		                       0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1,             \
-		                       1
-		execute @output.=uleb128 DW_LNCT_path, DW_FORM_string, @numdirs
-		execute =emit? =byte?: dirs 2
-		execute @output.=uleb128 DW_LNCT_path, DW_FORM_string,           \
-		                         DW_LNCT_directory_index, DW_FORM_udata, \
-		                         @numfiles
+		                       1, DW_LNCT_path, DW_FORM_string
+		execute @output.=uleb128 @numdirs
+		execute =emit? =byte?: dirs 2, DW_LNCT_path, DW_FORM_string, \
+		                       DW_LNCT_directory_index, DW_FORM_udata
+		execute @output.=uleb128 @numfiles
 		compute cur, 0
 		jump fileenter
 	fileloop:
@@ -559,7 +558,7 @@ macro ?! $              : $              , \
 		check file = value
 		jyes nextopt
 		execute =emit? =byte?: DW_LNS_set_file
-		execute @output.=leb128 @value
+		execute @output.=uleb128 @value
 		compute file, value
 		jump nextopt
 	optloop:
@@ -583,7 +582,7 @@ macro ?! $              : $              , \
 		check column = value
 		jyes nextopt
 		execute =emit? =byte?: DW_LNS_set_column
-		execute @output.=leb128 @value
+		execute @output.=uleb128 @value
 		compute column, value	
 		jump nextopt
 	basic_block:
@@ -607,7 +606,7 @@ macro ?! $              : $              , \
 		check isa = value
 		jyes nextopt
 		execute =emit? =byte?: DW_LNS_set_isa
-		execute @output.=leb128 @value
+		execute @output.=uleb128 @value
 		compute isa, value
 		jump nextopt
 	discriminator:
@@ -617,10 +616,10 @@ macro ?! $              : $              , \
 		compute opcidx, opcidx + 1
 		arrange @opclen, lines.=opc.opcidx
 		execute =emit? =byte?: 0
-		execute @output.=leb128 @opclen
+		execute @output.=uleb128 @opclen
 		compute opclen, $
 		execute =emit? =byte?: DW_LNE_set_discriminator
-		execute @output.=leb128 @value
+		execute @output.=uleb128 @value
 		compute opclen, $ - opclen
 		publish @opclen:, opclen
 		jump nextopt
@@ -649,7 +648,7 @@ macro ?! $              : $              , \
 		jump special
 	advpc:
 		execute =emit? =byte?: DW_LNS_advance_pc
-		execute @output.=leb128 @addroff
+		execute @output.=uleb128 @addroff
 		compute value, opcode_base + lineoff
 	special:
 		execute =emit? =byte?: @value
@@ -666,7 +665,7 @@ macro ?! $              : $              , \
 		jump done
 	lastadvpc:
 		execute =emit? =byte?: DW_LNS_advance_pc
-		execute @output.=leb128 @addroff
+		execute @output.=uleb128 @addroff
 	done:
 		execute =emit? =byte?: 0, 1, DW_LNE_end_sequence
 		jump success
