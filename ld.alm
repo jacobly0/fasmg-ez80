@@ -223,6 +223,12 @@ macro ?! $              : $              , \
 		execute =virtual? @sections.name?.=area?
 	end calminstruction
 
+	calminstruction ident?! comment*
+		proxy comment
+		execute =section? .=comment
+		execute =emit? =byte?: @comment, 0
+	end calminstruction
+
 	calminstruction public?! symbols*&
 		proxy declared, globals
 		local declare, global
