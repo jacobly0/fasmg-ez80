@@ -55,11 +55,17 @@ macro ?! $              : $              , \
 	end iterate
 
 	calminstruction makesection name*, base*
-		proxy sections
-		local @base, @name
+		proxy sections, string
+		local string, @base, @name
+		arrange string, name
+		stringify string
+		check string and $FF = ''''
+		jno ident
+		compute string, name
+		compute name, +string
+	ident:
 		arrange @name, @sections.name?
-		stringify name
-		publish @name:, name
+		publish @name:, string
 		publish :@sections, @name
 		arrange @base, @name.=base?
 		compute base, base
@@ -82,14 +88,21 @@ macro ?! $              : $              , \
 
 	calminstruction script.order names*&
 		proxy makesection, sections
-		split previous, names
-		jno done
+		split name, names
+		jump enter
 	loop:
 		split name, names
-		execute @makesection name, previous.=base? + previous.=length?
-		arrange previous, name
-		jyes loop
-	done:
+		execute @makesection name, prev.=base? + prev.=length?
+	enter:
+		arrange prev, name
+		stringify name
+		check name and $FF = ''''
+		jno ident
+		compute prev, +prev
+	ident:
+		arrange prev, @sections.prev?
+		match , names
+		jno loop
 	end calminstruction
 
 	calminstruction script.range expression*
@@ -98,9 +111,15 @@ macro ?! $              : $              , \
 		match name= base : high, expression
 		jno errsyntax
 		execute @makesection name, base
-		arrange @high, @sections.name?.=high?
+		arrange @high, name
+		stringify name
+		check name and $FF = ''''
+		jno ident
+		compute @high, +@high
+	ident:
+		arrange @high, @sections.@high?.=high?
 		compute high, high
-		publish @high, high
+		publish @high:, high
 		exit
 	errsyntax:
 		stringify expression
@@ -109,7 +128,7 @@ macro ?! $              : $              , \
 
 	calminstruction script.split names*&
 		proxy splitfiles, makesection, sections, names, extension
-		local extension, @splitfile, previous
+		local extension, @splitfile, prev
 		match extension : names, names
 		jno errsyntax
 		arrange @splitfile, @splitfiles.=extension?
@@ -123,14 +142,20 @@ macro ?! $              : $              , \
 		jump enter
 	loop:
 		split name, names
-		execute @makesection name, previous.=base? + previous.=length?
+		execute @makesection name, prev.=base? + prev.=length?
 	enter:
-		arrange previous, name
-		arrange name, @sections.name?
-		publish :@splitfile, name
-		arrange name, name.=split?
+		arrange prev, name
+		stringify name
+		check name and $FF = ''''
+		jno ident
+		compute prev, +prev
+	ident:
+		arrange prev, @sections.prev?
+		publish :@splitfile, prev
+		arrange name, prev.=split?
 		publish name:, @splitfile
-		jyes loop
+		match , names
+		jno loop
 		exit
 	errsyntax:
 		stringify names
@@ -139,11 +164,20 @@ macro ?! $              : $              , \
 
 	calminstruction script.precious names*&
 		proxy sections
+		local string
 	loop:
 		split name, names
+		arrange string, name
+		stringify string
+		check string and $FF = ''''
+		jno ident
+		compute string, name
+		compute name, +string
+	ident:
 		arrange name, @sections.name?.=precious?
 		publish name:, offset
-		jyes loop
+		match , names
+		jno loop
 	end calminstruction
 
 	iterate <name*,list*>, library,libraries, source,sources
@@ -214,11 +248,18 @@ macro ?! $              : $              , \
 	ignore:
 	end calminstruction
 
-	calminstruction section?! name*
+	calminstruction section?! name*, flags&
 		proxy sections
+		local string
 		next required
 		execute =end? =virtual?
 		execute =end? =if?
+		arrange string, name
+		stringify string
+		check string and $FF = ''''
+		jno ident
+		compute name, +name
+	ident:
 		execute =if? =definite? @sections.name?.=precious? | =defined? required
 		execute =virtual? @sections.name?.=area?
 	end calminstruction
