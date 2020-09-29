@@ -54,7 +54,7 @@ macro ?! $              : $              , \
 		end macro
 	end iterate
 
-	calminstruction makesection name*, base*
+	calminstruction makesection name*, base: 0
 		proxy sections, string
 		local string, @base, @name
 		arrange string, name
@@ -128,7 +128,7 @@ macro ?! $              : $              , \
 
 	calminstruction script.split names*&
 		proxy splitfiles, makesection, sections, names, extension
-		local extension, @splitfile, prev
+		local extension, @splitfile, string
 		match extension : names, names
 		jno errsyntax
 		arrange @splitfile, @splitfiles.=extension?
@@ -137,22 +137,18 @@ macro ?! $              : $              , \
 		execute =virtual? =as? @extension
 		execute @splitfile.=area::
 		execute =end? =virtual?
-		split name, names
-		execute @makesection name, @splitfile.=secoff
-		jump enter
 	loop:
 		split name, names
-		execute @makesection name, prev.=base? + prev.=length?
-	enter:
-		arrange prev, name
-		stringify name
-		check name and $FF = ''''
+		execute @makesection name
+		arrange string, name
+		stringify string
+		check string and $FF = ''''
 		jno ident
-		compute prev, +prev
+		compute name, +name
 	ident:
-		arrange prev, @sections.prev?
-		publish :@splitfile, prev
-		arrange name, prev.=split?
+		arrange name, @sections.name?
+		publish :@splitfile, name
+		arrange name, name.=split?
 		publish name:, @splitfile
 		match , names
 		jno loop
@@ -875,23 +871,22 @@ macro ?! $              : $              , \
 				emit word?: ehsize, phentsize, phnum, shentsize, shnum, shstrndx
 			ehsize:
 
-			secoff:
 				irpv section, splitfile
 					load output.data: section.initialized? from? section.area?: section.base?
-					emit byte?: output.data
+					section.dataoff? emit byte?: output.data
 				end irpv
 
 			shstroff:
 				emit byte?: 0
 				irpv section, sections
 					if ~definite section.split? & section.length?
-					nameoff.section := $ - .
+						section.nameoff? := $ - .
 						emit byte?: section, 0
 					end if
 				end irpv
 				irpv section, splitfile
 					if section.length?
-					nameoff.section := $ - .
+						section.nameoff? := $ - .
 						emit byte?: section, 0
 					end if
 				end irpv
@@ -906,16 +901,16 @@ macro ?! $              : $              , \
 					if ~definite section.split? & section.length?
 						shcur = shcur + 1
 						output.elf.info flags, entsize, section
-						emit dword?: nameoff.section, output.elf.SHT_NOBITS, flags, \
-						             section.base?, 0, section.length?, 0, 0, 0, entsize
+						emit dword?: section.nameoff?, output.elf.SHT_NOBITS, flags, \
+						             section.base?, ehsize, section.length?, 0, 0, 0, entsize
 					end if
 				end irpv
 				irpv section, splitfile
 					if section.length?
 						shcur = shcur + 1
 						output.elf.info flags, entsize, section
-						emit dword?: nameoff.section, output.elf.SHT_PROGBITS, flags, \
-						             0, section.base?, section.length?, 0, 0, 0, entsize
+						emit dword?: section.nameoff?, output.elf.SHT_PROGBITS, flags, \
+						             0, section.dataoff?, section.length?, 0, 0, 0, entsize
 					end if
 				end irpv
 				shstrndx := shcur
