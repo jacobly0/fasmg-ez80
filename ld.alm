@@ -350,8 +350,10 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction file?! args
-		local fileno, dirname, filename, options, index, variable
-		match fileno= dirname= filename options?, args
+		local fileno, dirname, filename, md5, index, variable
+		compute md5, 0
+		match args= =md5?= md5, args
+		match fileno= dirname= filename, args
 		jyes dirname
 		match fileno= filename, args
 		jno done ; ignore for compatibility
@@ -365,15 +367,16 @@ macro ?! $              : $              , \
 		compute dirname, string filename and (1 shl index - 1)
 		compute filename, string filename shr (index + 8)
 	dirname:
-		compute dirname, dirname
-	filename:
-		compute filename, filename
-	fileno:
 		compute fileno, fileno
+		compute dirname, dirname
 		arrange variable, lines.fileno.=dirname
 		publish variable:, dirname
+		compute filename, filename
 		arrange variable, lines.fileno.=filename
 		publish variable:, filename
+		compute md5, md5
+		arrange variable, lines.fileno.=md5
+		publish variable:, md5
 		arrange variable, lines.=numfiles
 		check variable < fileno
 		jno done
