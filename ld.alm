@@ -234,14 +234,56 @@ macro ?! $              : $              , \
 		script.line
 	end irpv
 
-	required equ required.0
-
 	calminstruction read?! file*
 		proxy include
 		match ., file
 		jno ignore
 		execute @include! file
 	ignore:
+	end calminstruction
+
+	required equ required.0
+
+	calminstruction uleb128? values*&
+		proxy enc
+		local enc
+	iter:
+		split value, values
+		compute value, value
+		check value >= 0
+		jyes enter
+		err 'uleb128 argument is negative'
+	loop:
+		compute enc, value and $7F or $80
+		execute =emit? =byte?: @enc
+		compute value, value shr 7
+	enter:
+		check value < $80
+		jno loop
+		compute enc, value
+		execute =emit? =byte?: @enc
+		match , values
+		jno iter
+	end calminstruction
+
+	calminstruction sleb128? values*&
+		proxy enc, value
+		local enc
+	iter:
+		split value, values
+		compute value, value
+		jump enter
+	loop:
+		compute enc, value and $7F or $80
+		execute =emit? =byte?: @enc
+		compute value, value shr 7
+	enter:
+		check value >= -$40 & value < $40
+		jno loop
+		compute enc, value and $7F
+		execute =emit? =byte?: @enc
+		match , values
+		jno iter
 	end calminstruction
 
 	calminstruction section?! name*, flags&
@@ -391,48 +433,6 @@ macro ?! $              : $              , \
 		take addrs, pc
 	end calminstruction
 
-	calminstruction output.uleb128 values*&
-		proxy enc
-		local enc
-	iter:
-		split value, values
-		compute value, value
-		check value >= 0
-		jyes enter
-		err 'output.uleb128 argument is negative'
-	loop:
-		compute enc, value and $7F or $80
-		execute =emit? =byte?: @enc
-		compute value, value shr 7
-	enter:
-		check value < $80
-		jno loop
-		compute enc, value
-		execute =emit? =byte?: @enc
-		match , values
-		jno iter
-	end calminstruction
-
-	calminstruction output.leb128 values*&
-		proxy enc, value
-		local enc
-	iter:
-		split value, values
-		compute value, value
-		jump enter
-	loop:
-		compute enc, value and $7F or $80
-		execute =emit? =byte?: @enc
-		compute value, value shr 7
-	enter:
-		check value >= -$40 & value < $40
-		jno loop
-		compute enc, value and $7F
-		execute =emit? =byte?: @enc
-		match , values
-		jno iter
-	end calminstruction
-
 	calminstruction output.debug_line
 		; Table 7.6: Attribute form encodings
 		once compute DW_FORM_addr             , 0x01
@@ -513,7 +513,7 @@ macro ?! $              : $              , \
 		once compute const_add_pc_off         , ($FF - opcode_base) / line_range
 		once compute const_add_pc_adj         , const_add_pc_off * line_range
 
-		proxy output, numfiles, numdirs, loc, addroff, lineoff, value, address
+		proxy numfiles, numdirs, loc, addroff, lineoff, value, address
 		local @after, @len, len, @headlen, headlen,                       \
 		      opcidx, @opclen, opclen, numfiles, dirs, numdirs,           \
 		      cur, curdirname, curdirno, other, otherdirname, otherdirno, \
@@ -567,14 +567,14 @@ macro ?! $              : $              , \
 		                       is_stmt, @line_base, @line_range, @opcode_base, \
 		                       0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1,             \
 		                       1, DW_LNCT_path, DW_FORM_string
-		execute @output.=uleb128 @numdirs
+		execute =uleb128? @numdirs
 		execute =emit? =byte?: dirs 2, DW_LNCT_path, DW_FORM_string, \
 		                       DW_LNCT_directory_index, DW_FORM_udata
-		execute @output.=uleb128 @numfiles
+		execute =uleb128? @numfiles
 		compute cur, 1
 	fileloop:
 		execute =emit? =byte?: lines.cur.=filename, 0
-		execute @output.=uleb128 lines.cur.=dirno
+		execute =uleb128? lines.cur.=dirno
 		compute cur, cur + 1
 		check cur > numfiles
 		jno fileloop
@@ -593,7 +593,7 @@ macro ?! $              : $              , \
 		check file = value
 		jyes nextopt
 		execute =emit? =byte?: DW_LNS_set_file
-		execute @output.=uleb128 @value
+		execute =uleb128? @value
 		compute file, value
 		jump nextopt
 	optloop:
@@ -617,7 +617,7 @@ macro ?! $              : $              , \
 		check column = value
 		jyes nextopt
 		execute =emit? =byte?: DW_LNS_set_column
-		execute @output.=uleb128 @value
+		execute =uleb128? @value
 		compute column, value	
 		jump nextopt
 	basic_block:
@@ -641,7 +641,7 @@ macro ?! $              : $              , \
 		check isa = value
 		jyes nextopt
 		execute =emit? =byte?: DW_LNS_set_isa
-		execute @output.=uleb128 @value
+		execute =uleb128? @value
 		compute isa, value
 		jump nextopt
 	discriminator:
@@ -651,10 +651,10 @@ macro ?! $              : $              , \
 		compute opcidx, opcidx + 1
 		arrange @opclen, lines.=opc.opcidx
 		execute =emit? =byte?: 0
-		execute @output.=uleb128 @opclen
+		execute =uleb128? @opclen
 		compute opclen, $
 		execute =emit? =byte?: DW_LNE_set_discriminator
-		execute @output.=uleb128 @value
+		execute =uleb128? @value
 		compute opclen, $ - opclen
 		publish @opclen:, opclen
 		jump nextopt
@@ -668,7 +668,7 @@ macro ?! $              : $              , \
 		check lineoff >= 0 & lineoff < line_range
 		jyes nearline
 		execute =emit? =byte?: DW_LNS_advance_line
-		execute @output.=leb128 @lineoff
+		execute =sleb128? @lineoff
 		compute lineoff, 0
 	nearline:
 		compute addroff, nextaddr - address
@@ -683,7 +683,7 @@ macro ?! $              : $              , \
 		jump special
 	advpc:
 		execute =emit? =byte?: DW_LNS_advance_pc
-		execute @output.=uleb128 @addroff
+		execute =uleb128? @addroff
 		compute value, opcode_base + lineoff
 	special:
 		execute =emit? =byte?: @value
@@ -700,7 +700,7 @@ macro ?! $              : $              , \
 		jump done
 	lastadvpc:
 		execute =emit? =byte?: DW_LNS_advance_pc
-		execute @output.=uleb128 @addroff
+		execute =uleb128? @addroff
 	done:
 		execute =emit? =byte?: 0, 1, DW_LNE_end_sequence
 		jump success
