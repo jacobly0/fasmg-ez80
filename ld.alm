@@ -526,12 +526,9 @@ macro ?! $              : $              , \
 		compute numfiles, numfiles
 		arrange dirs,
 		compute numdirs, 0
-		compute cur, 0
-		jump dirnoenter
+		compute cur, 1
 	outerdirnoloop:
 		arrange curdirname, lines.cur.=dirname
-		check lengthof curdirname
-		jno nodirno
 		compute other, 0
 	innerdirnoloop:
 		compute other, other + 1
@@ -543,17 +540,11 @@ macro ?! $              : $              , \
 		check definite otherdirno
 		jyes copydirno
 		arrange dirs, dirs curdirname, 0,
-		compute numdirs, numdirs + 1
 		compute otherdirno, numdirs
-		jump setdirno
+		compute numdirs, numdirs + 1
 	copydirno:
 		compute otherdirno, otherdirno
-		jump setdirno
-	nodirno:
-		compute otherdirno, 0
-	setdirno:
 		publish curdirno, otherdirno
-	dirnoenter:
 		compute cur, cur + 1
 		check cur > numfiles
 		jno outerdirnoloop
@@ -577,12 +568,10 @@ macro ?! $              : $              , \
 		execute =emit? =byte?: dirs 2, DW_LNCT_path, DW_FORM_string, \
 		                       DW_LNCT_directory_index, DW_FORM_udata
 		execute @output.=uleb128 @numfiles
-		compute cur, 0
-		jump fileenter
+		compute cur, 1
 	fileloop:
 		execute =emit? =byte?: lines.cur.=filename, 0
 		execute @output.=uleb128 lines.cur.=dirno
-	fileenter:
 		compute cur, cur + 1
 		check cur > numfiles
 		jno fileloop
@@ -597,7 +586,7 @@ macro ?! $              : $              , \
 	locloop:
 		match value= nextline= options?, loc
 		jno errsyntax
-		compute value, value
+		compute value, value - 1
 		check file = value
 		jyes nextopt
 		execute =emit? =byte?: DW_LNS_set_file
