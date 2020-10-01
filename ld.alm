@@ -392,38 +392,57 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction file?! args
-		local fileno, dirname, filename, md5, index, variable
+		local fileno, path, dirname, filename, md5, index, numfiles, var
+		match path : index, args
+		jyes file
 		compute md5, 0
 		match args= =md5?= md5, args
+		compute md5, md5
 		match fileno= dirname= filename, args
-		jyes dirname
-		match fileno= filename, args
-		jno done ; ignore for compatibility
-		compute index, lengthof filename shl 3
+		jyes combine
+		match fileno= path, args
+		jno file
+		compute path, path
+		compute index, lengthof path shl 3
 	splitloop:
 		check index
-		jno dirname
+		jno simple
 		compute index, index - 8
-		check filename shr index and $FF = '/'
+		check path shr index and $FF = '/'
 		jno splitloop
-		compute dirname, string filename and (1 shl index - 1)
-		compute filename, string filename shr (index + 8)
-	dirname:
-		compute fileno, fileno
+		compute dirname, string path and (1 shl index - 1)
+		compute filename, string path shr (index + 8)
+		jump store
+	simple:
+		compute dirname, ''
+		compute filename, path
+		jump store
+	combine:
+		check filename and $FFFF = './' | filename and $FFFF = '.\';'
+		jno notrim
+		compute filename, string filename shr 16
+	notrim:
 		compute dirname, dirname
-		arrange variable, lines.fileno.=dirname
-		publish variable:, dirname
 		compute filename, filename
-		arrange variable, lines.fileno.=filename
-		publish variable:, filename
-		compute md5, md5
-		arrange variable, lines.fileno.=md5
-		publish variable:, md5
-		arrange variable, lines.=numfiles
-		check variable < fileno
-		jno done
-		publish variable, fileno
-	done:
+		compute path, string dirname \
+		                  or '/' shl (lengthof filename shl 3) \
+		                  or filename shl (lengthof filename shl 3 + 8)
+	store:
+		compute fileno, fileno
+		arrange var, lines.fileno.=path
+		publish var:, path
+		arrange var, lines.fileno.=dirname
+		publish var:, dirname
+		arrange var, lines.fileno.=filename
+		publish var:, filename
+		arrange var, lines.fileno.=md5
+		publish var:, md5
+		arrange var, lines.=numfiles
+		compute numfiles, var + 1
+		publish var, numfiles
+		exit
+	file:
+		execute =file? args
 	end calminstruction
 
 	calminstruction loc? args&
@@ -435,161 +454,221 @@ macro ?! $              : $              , \
 
 	calminstruction output.debug_line
 		; Table 7.6: Attribute form encodings
-		once compute DW_FORM_addr             , 0x01
-		once compute DW_FORM_block2           , 0x03
-		once compute DW_FORM_block4           , 0x04
-		once compute DW_FORM_data2            , 0x05
-		once compute DW_FORM_data4            , 0x06
-		once compute DW_FORM_data8            , 0x07
-		once compute DW_FORM_string           , 0x08
-		once compute DW_FORM_block            , 0x09
-		once compute DW_FORM_block1           , 0x0a
-		once compute DW_FORM_data1            , 0x0b
-		once compute DW_FORM_flag             , 0x0c
-		once compute DW_FORM_sdata            , 0x0d
-		once compute DW_FORM_strp             , 0x0e
-		once compute DW_FORM_udata            , 0x0f
-		once compute DW_FORM_ref_addr         , 0x10
-		once compute DW_FORM_ref1             , 0x11
-		once compute DW_FORM_ref2             , 0x12
-		once compute DW_FORM_ref4             , 0x13
-		once compute DW_FORM_ref8             , 0x14
-		once compute DW_FORM_ref_udata        , 0x15
-		once compute DW_FORM_indirect         , 0x16
-		once compute DW_FORM_sec_offset       , 0x17
-		once compute DW_FORM_exprloc          , 0x18
-		once compute DW_FORM_flag_present     , 0x19
-		once compute DW_FORM_strx             , 0x1a
-		once compute DW_FORM_addrx            , 0x1b
-		once compute DW_FORM_ref_sup4         , 0x1c
-		once compute DW_FORM_strp_sup         , 0x1d
-		once compute DW_FORM_data16           , 0x1e
-		once compute DW_FORM_line_strp        , 0x1f
-		once compute DW_FORM_ref_sig8         , 0x20
-		once compute DW_FORM_implicit_const   , 0x21
-		once compute DW_FORM_loclistx         , 0x22
-		once compute DW_FORM_rnglistx         , 0x23
-		once compute DW_FORM_ref_sup8         , 0x24
-		once compute DW_FORM_strx1            , 0x25
-		once compute DW_FORM_strx2            , 0x26
-		once compute DW_FORM_strx3            , 0x27
-		once compute DW_FORM_strx4            , 0x28
-		once compute DW_FORM_addrx1           , 0x29
-		once compute DW_FORM_addrx2           , 0x2a
-		once compute DW_FORM_addrx3           , 0x2b
-		once compute DW_FORM_addrx4           , 0x2c
+		once compute DW_FORM_addr              , 0x01
+		once compute DW_FORM_block2            , 0x03
+		once compute DW_FORM_block4            , 0x04
+		once compute DW_FORM_data2             , 0x05
+		once compute DW_FORM_data4             , 0x06
+		once compute DW_FORM_data8             , 0x07
+		once compute DW_FORM_string            , 0x08
+		once compute DW_FORM_block             , 0x09
+		once compute DW_FORM_block1            , 0x0a
+		once compute DW_FORM_data1             , 0x0b
+		once compute DW_FORM_flag              , 0x0c
+		once compute DW_FORM_sdata             , 0x0d
+		once compute DW_FORM_strp              , 0x0e
+		once compute DW_FORM_udata             , 0x0f
+		once compute DW_FORM_ref_addr          , 0x10
+		once compute DW_FORM_ref1              , 0x11
+		once compute DW_FORM_ref2              , 0x12
+		once compute DW_FORM_ref4              , 0x13
+		once compute DW_FORM_ref8              , 0x14
+		once compute DW_FORM_ref_udata         , 0x15
+		once compute DW_FORM_indirect          , 0x16
+		once compute DW_FORM_sec_offset        , 0x17
+		once compute DW_FORM_exprloc           , 0x18
+		once compute DW_FORM_flag_present      , 0x19
+		once compute DW_FORM_strx              , 0x1a
+		once compute DW_FORM_addrx             , 0x1b
+		once compute DW_FORM_ref_sup4          , 0x1c
+		once compute DW_FORM_strp_sup          , 0x1d
+		once compute DW_FORM_data16            , 0x1e
+		once compute DW_FORM_line_strp         , 0x1f
+		once compute DW_FORM_ref_sig8          , 0x20
+		once compute DW_FORM_implicit_const    , 0x21
+		once compute DW_FORM_loclistx          , 0x22
+		once compute DW_FORM_rnglistx          , 0x23
+		once compute DW_FORM_ref_sup8          , 0x24
+		once compute DW_FORM_strx1             , 0x25
+		once compute DW_FORM_strx2             , 0x26
+		once compute DW_FORM_strx3             , 0x27
+		once compute DW_FORM_strx4             , 0x28
+		once compute DW_FORM_addrx1            , 0x29
+		once compute DW_FORM_addrx2            , 0x2a
+		once compute DW_FORM_addrx3            , 0x2b
+		once compute DW_FORM_addrx4            , 0x2c
 		; Table 7.25: Line number standard opcode encodings
-		once compute DW_LNS_copy              , 0x01
-		once compute DW_LNS_advance_pc        , 0x02
-		once compute DW_LNS_advance_line      , 0x03
-		once compute DW_LNS_set_file          , 0x04
-		once compute DW_LNS_set_column        , 0x05
-		once compute DW_LNS_negate_stmt       , 0x06
-		once compute DW_LNS_set_basic_block   , 0x07
-		once compute DW_LNS_const_add_pc      , 0x08
-		once compute DW_LNS_fixed_advance_pc  , 0x09
-		once compute DW_LNS_set_prologue_end  , 0x0a
-		once compute DW_LNS_set_epilogue_begin, 0x0b
-		once compute DW_LNS_set_isa           , 0x0c
+		once compute DW_LNS_copy               , 0x01
+		once compute DW_LNS_advance_pc         , 0x02
+		once compute DW_LNS_advance_line       , 0x03
+		once compute DW_LNS_set_file           , 0x04
+		once compute DW_LNS_set_column         , 0x05
+		once compute DW_LNS_negate_stmt        , 0x06
+		once compute DW_LNS_set_basic_block    , 0x07
+		once compute DW_LNS_const_add_pc       , 0x08
+		once compute DW_LNS_fixed_advance_pc   , 0x09
+		once compute DW_LNS_set_prologue_end   , 0x0a
+		once compute DW_LNS_set_epilogue_begin , 0x0b
+		once compute DW_LNS_set_isa            , 0x0c
 		; Table 7.26: Line number extended opcode encodings
-		once compute DW_LNE_end_sequence      , 0x01
-		once compute DW_LNE_set_address       , 0x02
-		once compute DW_LNE_set_discriminator , 0x04
-		once compute DW_LNE_lo_user           , 0x80
-		once compute DW_LNE_hi_user           , 0xff
+		once compute DW_LNE_end_sequence       , 0x01
+		once compute DW_LNE_set_address        , 0x02
+		once compute DW_LNE_set_discriminator  , 0x04
+		once compute DW_LNE_lo_user            , 0x80
+		once compute DW_LNE_hi_user            , 0xff
 		; Table 7.27: Line number header entry format encodings
-		once compute DW_LNCT_path             , 0x1
-		once compute DW_LNCT_directory_index  , 0x2
-		once compute DW_LNCT_timestamp        , 0x3
-		once compute DW_LNCT_size             , 0x4
-		once compute DW_LNCT_MD5              , 0x5
-		once compute DW_LNCT_lo_user          , 0x2000
-		once compute DW_LNCT_hi_user          , 0x3fff
+		once compute DW_LNCT_path              , 0x1
+		once compute DW_LNCT_directory_index   , 0x2
+		once compute DW_LNCT_timestamp         , 0x3
+		once compute DW_LNCT_size              , 0x4
+		once compute DW_LNCT_MD5               , 0x5
+		once compute DW_LNCT_lo_user           , 0x2000
+		once compute DW_LNCT_hi_user           , 0x3fff
 
 		proxy line_base, line_range, opcode_base
-		once compute line_base                , -5
-		once compute line_range               , 14
-		once compute opcode_base              , DW_LNS_set_isa + 1
-		once compute const_add_pc_off         , ($FF - opcode_base) / line_range
-		once compute const_add_pc_adj         , const_add_pc_off * line_range
+		once compute segment_selector_size     , 0
+		once compute minimum_instruction_length, 1
+		once compute maximum_operations_per_instruction, 1
+		once compute default_is_stmt           , 1
+		once compute line_base                 , -5
+		once compute line_range                , 14
+		once compute opcode_base               , DW_LNS_set_isa + 1
+		once compute const_add_pc_off          , ($FF - opcode_base) / line_range
+		once compute const_add_pc_adj          , const_add_pc_off * line_range
 
-		proxy numfiles, numdirs, loc, addroff, lineoff, value, address
-		local @after, @len, len, @headlen, headlen,                       \
-		      opcidx, @opclen, opclen, numfiles, dirs, numdirs,           \
+		proxy sections, version, numfiles, numdirs, filelen, \
+		      loc, addroff, lineoff, value, address
+		local version, after, @len, len, @headlen, headlen,               \
+		      opcidx, @opclen, opclen, numfiles, dirs, numdirs, filelen,  \
 		      cur, curdirname, curdirno, other, otherdirname, otherdirno, \
 		      loc, nextaddr, addroff, nextline, lineoff, options, value,  \
 		      address, file, line, column, is_stmt, isa
+
 		take loc, locs
 		jno skip
-		arrange @after, lines.=after
-		arrange @len, lines.=len
-		arrange @headlen, lines.=headlen
-		compute opcidx, 0
-		arrange numfiles, lines.=numfiles
-		compute numfiles, numfiles
-		arrange dirs,
+
+		execute =load? @version: =word? =from? @sections..=debug_info?.=area?: lines.=version
+		compute version, +version
+		check version > 1 & version <= 5
+		jno errversion
+
 		compute numdirs, 0
-		compute cur, 1
-	outerdirnoloop:
+		arrange dirs,
+		arrange numfiles, lines.=numfiles
+		compute cur, 0
+		check version < 5
+		jyes dirnopre5
+		jump dirnoenter
+	dirnoloop:
+		compute numfiles, numfiles - 1
 		arrange curdirname, lines.cur.=dirname
 		compute other, 0
-	innerdirnoloop:
+		check version < 5
+		jno dirnouniqueenter
+	dirnouniqueloop:
 		compute other, other + 1
+	dirnouniqueenter:
 		arrange otherdirname, lines.other.=dirname
 		check curdirname = otherdirname
-		jno innerdirnoloop
+		jno dirnouniqueloop
 		arrange curdirno, lines.cur.=dirno
 		arrange otherdirno, lines.other.=dirno
 		check definite otherdirno
-		jyes copydirno
+		jyes dirnocopy
 		arrange dirs, dirs curdirname, 0,
 		compute otherdirno, numdirs
 		compute numdirs, numdirs + 1
-	copydirno:
+		check version < 5
+		jno dirnocopy
+		compute otherdirno, numdirs
+	dirnocopy:
 		compute otherdirno, otherdirno
-		publish curdirno, otherdirno
+		publish curdirno:, otherdirno
+	dirnopre5:
 		compute cur, cur + 1
-		check cur > numfiles
-		jno outerdirnoloop
-		arrange address, lines.=before
-		compute file, 1
-		compute line, 1
-		compute column, 0
-		compute is_stmt, 1
-		compute isa, 0
+	dirnoenter:
+		check numfiles
+		jyes dirnoloop
+
+		arrange numfiles, lines.=numfiles
+		compute cur, 0
+		arrange @len, lines.=len
 		execute =emit? =dword?: @len
 		compute len, $
-		execute =emit? =word?: 5
-		execute =emit? =byte?: =long?, 0
+		execute =emit? =word?: @version
+		check version < 5
+		jyes noaddrinfo
+		execute =emit? =byte?: =@ez80.=ws, 0
+	noaddrinfo:
+		arrange @headlen, lines.=headlen
 		execute =emit? =dword?: @headlen
 		compute headlen, $
-		execute =emit? =byte?: 1, 1,                                           \
-		                       is_stmt, @line_base, @line_range, @opcode_base, \
-		                       0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1,             \
-		                       1, DW_LNCT_path, DW_FORM_string
+		execute =emit? =byte?: minimum_instruction_length
+		check version < 4
+		jyes nomininstlen
+		execute =emit? =byte?: maximum_operations_per_instruction
+	nomininstlen:
+		execute =emit? =byte?: default_is_stmt, @line_base, \
+		                       @line_range, @opcode_base,   \
+		                       0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1
+		check version < 5
+		jno entries
+		execute =emit? =byte?: dirs 0
+		jump filesnext
+	entries:
+		execute =emit? =byte?: 1, DW_LNCT_path, DW_FORM_string
 		execute =uleb128? @numdirs
-		execute =emit? =byte?: dirs 2, DW_LNCT_path, DW_FORM_string, \
-		                       DW_LNCT_directory_index, DW_FORM_udata
+		execute =emit? =byte?: dirs 4, DW_LNCT_path, DW_FORM_string,           \
+		                               DW_LNCT_directory_index, DW_FORM_udata, \
+		                               DW_LNCT_size, DW_FORM_udata,            \
+		                               DW_LNCT_MD5, DW_FORM_data16
 		execute =uleb128? @numfiles
-		compute cur, 1
-	fileloop:
+		jump filesenter
+	filesloop:
+		compute numfiles, numfiles - 1
+		execute =virtual? =at? 0
+		execute   =file? lines.cur.=path
+		compute   filelen, $
+		execute =end? =virtual?
 		execute =emit? =byte?: lines.cur.=filename, 0
-		execute =uleb128? lines.cur.=dirno
+		check version < 5
+		jno filesentry
+		execute =uleb128? lines.cur.=dirno, 0, @filelen
+		jump filesnext
+	filesentry:
+		execute =uleb128? lines.cur.=dirno, @filelen
+		execute =emit? =dqword?: lines.cur.=md5 =bswap? =dqword?
+	filesnext:
 		compute cur, cur + 1
-		check cur > numfiles
-		jno fileloop
+	filesenter:
+		check numfiles
+		jyes filesloop
+		check version < 5
+		jno nofilesnull
+		execute =emit? =byte?: 0
+	nofilesnull:
 		compute headlen, $ - headlen
 		publish @headlen:, headlen
+
 	reverse:
 		take nextaddr, addrs
 		take loc, locs
 		jyes reverse
+
+		compute opcidx, 0
+		arrange address, lines.=before
+		compute file, 1
+		compute line, 1
+		compute column, 0
+		compute is_stmt, default_is_stmt
+		compute isa, 0
+
 		execute =emit? =byte?: 0, 4, DW_LNE_set_address
 		execute =emit? =long?: @address
 	locloop:
 		match value= nextline= options?, loc
 		jno errsyntax
-		compute value, value - 1
+		compute value, value
 		check file = value
 		jyes nextopt
 		execute =emit? =byte?: DW_LNS_set_file
@@ -691,7 +770,8 @@ macro ?! $              : $              , \
 		take , nextaddr
 		take loc, loc
 		jyes locloop
-		compute addroff, @after - address
+		arrange after, lines.=after
+		compute addroff, after - address
 		check addroff
 		jno done
 		check @addroff = const_add_pc_off
@@ -703,24 +783,39 @@ macro ?! $              : $              , \
 		execute =uleb128? @addroff
 	done:
 		execute =emit? =byte?: 0, 1, DW_LNE_end_sequence
-		jump success
-	errsyntax:
-		stringify loc
-		execute =err? 'invalid syntax in loc macro: loc ', @loc
-		; define len anyway to avoid an undefined
-		; forward ref error from hiding the above error
-	success:
+
+	suppresserr:
 		compute len, $ - len
 		publish @len:, len
 	skip:
+		exit
+
+	errversion:
+		arrange version, version
+		stringify version
+		err 'unknown dwarf version: ', @version
+
+	errsyntax:
+		stringify loc
+		execute =err? 'invalid syntax in loc macro: loc ', @loc
+		; define len regardless of errors to avoid an undefined
+		; forward ref error from hiding the aformentioned error
+		jump suppresserr
 	end calminstruction
 
 	irpv source, sources
 		lines equ lines.%
 		lines.%.numfiles = 0
-		virtual sections..text?.area?
-			lines.%.before := $
-		end virtual
+		if definite sections..text?
+			virtual sections..text?.area?
+				lines.%.before := $
+			end virtual
+		end if
+		if definite sections..debug_info?
+			virtual sections..debug_info?.area?
+				lines.%.version := $ + 4
+			end virtual
+		end if
 
 		namespace ?%
 			if 0
@@ -734,12 +829,14 @@ macro ?! $              : $              , \
 			end if
 		end namespace
 
-		virtual sections..text?.area?
-			lines.%.after := $
-		end virtual
+		if definite sections..text?
+			virtual sections..text?.area?
+				lines.%.after := $
+			end virtual
+		end if
 	end irpv
 
-	if definite libraries
+	if definite libraries and sections..libs?
 		namespace libraries
 			calminstruction library?! name*, version*
 				proxy defers
