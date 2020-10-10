@@ -392,7 +392,7 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction file?! args
-		local fileno, path, dirname, filename, md5, index, numfiles, var
+		local fileno, path, dirname, filename, md5, index, substr, numfiles, var
 		match path : index, args
 		jyes file
 		compute md5, 0
@@ -408,7 +408,8 @@ macro ?! $              : $              , \
 		check index
 		jno simple
 		compute index, index - 8
-		check path shr index and $FF = '/'
+		compute substr, path shr index and $FF
+		check substr = '/' | substr = '\'
 		jno splitloop
 		compute dirname, string path and (1 shl index - 1)
 		compute filename, string path shr (index + 8)
@@ -418,7 +419,8 @@ macro ?! $              : $              , \
 		compute filename, path
 		jump store
 	combine:
-		check filename and $FFFF = './' | filename and $FFFF = '.\';'
+		compute substr, filename and $FFFF
+		check substr = './' | substr = '.\'
 		jno notrim
 		compute filename, string filename shr 16
 	notrim:
