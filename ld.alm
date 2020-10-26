@@ -27,9 +27,9 @@ macro ?! $              : $              , \
          used           : used           , \
          virtual        : virtual        , \
          word           : word
-	local endscript, script, read, required, lines, locs, addrs, makesection,  \
-	      sections, declared, globals, splitfiles, libraries, sources, offset, \
-	      defers, output
+	local endscript, script, read, required, cfi, lines, locs, addrs,      \
+	      makesection, sections, declared, globals, splitfiles, libraries, \
+	      sources, offset, defers, output
 	element endscript
 
 	include 'commands.alm'
@@ -389,6 +389,300 @@ macro ?! $              : $              , \
 	calminstruction ifextern?! symbol*
 		proxy declared
 		execute =if? =defined? @declared.symbol
+	end calminstruction
+
+	calminstruction cfi_sections? sections*&
+	end calminstruction
+
+	calminstruction cfi_startproc?
+		proxy sections, pointer
+		local @start, start, @length, pointer, @cfa_offset, cfa_offset, \
+		      @location, location, @initial_location, @address_range
+		next cfi
+		arrange @start, cfi.=start
+		arrange @length, cfi.=length
+		arrange @cfa_offset, cfi.=cfa_offset
+		arrange @location, cfi.=location
+		arrange @initial_location, cfi.=initial_location
+		arrange @address_range, cfi.=address_range
+		compute pointer, cfi.cie
+		compute cfa_offset, @ez80.ws
+		publish @cfa_offset, cfa_offset
+		compute location, $
+		publish @location, location
+		publish @initial_location:, location
+		execute =virtual? @sections..=debug_frame?.=area?
+		execute =emit? =dword?: @length
+		compute start, $
+		publish @start:, start
+		execute =emit? =dword?: @pointer
+		execute =emit? =@ez80.=ws: @initial_location, @address_range
+		execute =end? =virtual?
+	end calminstruction
+
+	calminstruction cfi_endproc?
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_nop                , 0x00
+
+		proxy sections
+		local @start, @length, length, \
+		      @initial_location, @address_range, address_range
+		arrange @start, cfi.=start
+		arrange @length, cfi.=length
+		arrange @initial_location, cfi.=initial_location
+		arrange @address_range, cfi.=address_range
+		compute pointer, cfi.cie
+		compute address_range, $ - @initial_location
+		publish @address_range:, address_range
+		execute =virtual? @sections..=debug_frame?.=area?
+		compute length, $ - @start
+		publish @length:, length
+		execute =end? =virtual?
+	end calminstruction
+
+	calminstruction cfi.location
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_advance_loc        , 0x1 shl 6
+		once compute DW_CFA_set_loc            , 0x01
+		once compute DW_CFA_advance_loc1       , 0x02
+		once compute DW_CFA_advance_loc2       , 0x03
+		once compute DW_CFA_advance_loc4       , 0x04
+
+		proxy sections, opc, adv
+		local @location, location
+		arrange @location, cfi.=location
+		compute location, $
+		execute =virtual? @sections..=debug_frame?.=area?
+		compute adv, location - @location
+		check adv
+		jno done
+		publish @location, location
+		check adv < 1 shl 6
+		jno loc1
+		compute opc, DW_CFA_advance_loc or adv
+		execute =emit? =byte?: @opc
+		exit
+	loc1:
+		check adv < 1 shl 8
+		jno loc2
+		execute =emit? =byte?: DW_CFA_advance_loc1, @adv
+		exit
+	loc2:
+		check adv < 1 shl 16
+		jno loc4
+		execute =emit? =byte?: DW_CFA_advance_loc2
+		execute =emit? =word?: @adv
+		exit
+	loc4:
+		execute =emit? =byte?: DW_CFA_advance_loc4
+		execute =emit? =dword?: @adv
+	done:
+	end calminstruction
+
+	calminstruction cfi_def_cfa? reg*, off*
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_def_cfa            , 0x0c
+		once compute DW_CFA_def_cfa_sf         , 0x12
+
+		proxy cfi, off
+		local @cfa_offset
+		arrange @cfa_offset, cfi.=cfa_offset
+		compute off, off
+		publish @cfa_offset, off
+		execute @cfi.=location
+	  check off mod -@ez80.ws
+		jno sf
+		execute =emit? =byte?: DW_CFA_def_cfa
+		execute =uleb128? @cfi.=reg.reg?, @off
+		execute =end? =virtual?
+		exit
+	sf:
+		compute off, off / -@ez80.ws
+		execute =emit? =byte?: DW_CFA_def_cfa_sf
+		execute =uleb128? @cfi.=reg.reg?
+		execute =sleb128? @off
+		execute =end? =virtual?
+	end calminstruction
+
+	calminstruction cfi_def_cfa_register? reg*
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_def_cfa_register   , 0x0d
+
+		proxy cfi
+		execute @cfi.=location
+		execute =emit? =byte?: DW_CFA_def_cfa_register
+		execute =uleb128? @cfi.=reg.reg?
+		execute =end? =virtual?
+	end calminstruction
+
+	calminstruction cfi_def_cfa_offset? off*
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_def_cfa_offset     , 0x0e
+		once compute DW_CFA_def_cfa_offset_sf  , 0x13
+
+		proxy cfi, off
+		local @cfa_offset
+		arrange @cfa_offset, cfi.=cfa_offset
+		compute off, off
+		publish @cfa_offset, off
+		execute @cfi.=location
+		check off mod -@ez80.ws
+		jno sf
+		execute =emit? =byte?: DW_CFA_def_cfa_offset
+		execute =uleb128? @off
+		execute =end? =virtual?
+		exit
+	sf:
+		compute off, off / -@ez80.ws
+		execute =emit? =byte?: DW_CFA_def_cfa_offset_sf
+		execute =sleb128? @off
+		execute =end? =virtual?
+	end calminstruction
+
+	calminstruction cfi_adjust_cfa_offset? off*
+		proxy off
+		local @cfa_offset
+		arrange @cfa_offset, cfi.=cfa_offset
+		compute off, @cfa_offset + off
+		execute =cfi_def_cfa_offset? @off
+	end calminstruction
+
+	calminstruction cfi_offset? reg*, off*
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_offset             , 0x2 shl 6
+		once compute DW_CFA_offset_extended    , 0x05
+		once compute DW_CFA_offset_extended_sf , 0x11
+
+		proxy cfi, opc, off
+		execute @cfi.=location
+		arrange reg, @cfi.=reg.reg?
+		compute off, off / -@ez80.ws
+		check off < 0
+		jyes sf
+		check reg < 1 shl 6
+		jno ext
+		compute opc, DW_CFA_offset or reg
+		execute =emit? =byte?: @opc
+		execute =uleb128? @off
+		execute =end? =virtual?
+		exit
+	ext:
+		execute =emit? =byte?: DW_CFA_offset_extended
+		execute =uleb128? reg, @off
+		execute =end? =virtual?
+		exit
+	sf:
+		execute =emit? =byte?: DW_CFA_offset_extended_sf
+		execute =uleb128? reg
+		execute =sleb128? @off
+		execute =end? =virtual?
+	end calminstruction
+
+	calminstruction cfi_val_offset? reg*, off*
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_val_offset         , 0x14
+		once compute DW_CFA_val_offset_sf      , 0x15
+
+		proxy cfi, off
+		execute @cfi.=location
+		arrange reg, @cfi.=reg.reg?
+		compute off, off / -@ez80.ws
+		check off < 0
+		jyes sf
+		execute =emit? =byte?: DW_CFA_val_offset
+		execute =uleb128? reg, @off
+		execute =end? =virtual?
+		exit
+	sf:
+		execute =emit? =byte?: DW_CFA_val_offset_sf
+		execute =uleb128? reg
+		execute =sleb128? @off
+		execute =end? =virtual?
+	end calminstruction
+
+	calminstruction cfi_rel_offset? reg*, off*
+		proxy off
+		local @cfa_offset
+		arrange @cfa_offset, cfi.=cfa_offset
+		compute off, @cfa_offset + off
+		execute =cfi_offset? reg, @off
+	end calminstruction
+
+	calminstruction cfi_register? reg1*, reg2*
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_def_cfa_register   , 0x09
+
+		proxy cfi
+		execute @cfi.=location
+		arrange reg1, @cfi.=reg.reg1?
+		arrange reg2, @cfi.=reg.reg2?
+		execute =emit? =byte?: DW_CFA_def_cfa_register
+		execute =uleb128? reg1, reg2
+		execute =end? =virtual?
+	end calminstruction
+
+	calminstruction cfi_restore reg*
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_restore            , 0x3 shl 6
+		once compute DW_CFA_restore_extended   , 0x06
+
+		proxy cfi, opc
+		execute @cfi.=location
+		arrange reg, @cfi.=reg.reg?
+		check reg < 1 shl 6
+		jno ext
+		compute opc, DW_CFA_restore or reg
+		execute =emit? =byte?: @opc
+		execute =end? =virtual?
+		exit
+	ext:
+		execute =emit? =byte?: DW_CFA_restore_extended
+		execute =uleb128? reg
+		execute =end? =virtual?
+	end calminstruction
+
+	calminstruction cfi_undefined reg*
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_undefined          , 0x07
+
+		proxy cfi
+		execute @cfi.=location
+		arrange reg, @cfi.=reg.reg?
+		execute =emit? =byte?: DW_CFA_undefined
+		execute =uleb128? reg
+		execute =end? =virtual?
+	end calminstruction
+
+	calminstruction cfi_same_value reg*
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_same_value         , 0x08
+
+		proxy cfi
+		execute @cfi.=location
+		arrange reg, @cfi.=reg.reg?
+		execute =emit? =byte?: DW_CFA_same_value
+		execute =uleb128? reg
+		execute =end? =virtual?
+	end calminstruction
+
+	calminstruction cfi_remember_state
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_remember_state     , 0x0a
+
+		proxy cfi
+		execute @cfi.=location
+		execute =emit? =byte?: DW_CFA_remember_state
+		execute =end? =virtual?
+	end calminstruction
+
+	calminstruction cfi_restore_state
+		; Table 7.29: Call frame instruction encodings
+		once compute DW_CFA_restore_state      , 0x0b
+
+		proxy cfi
+		execute @cfi.=location
+		execute =emit? =byte?: DW_CFA_restore_state
+		execute =end? =virtual?
 	end calminstruction
 
 	calminstruction file?! args
@@ -804,6 +1098,36 @@ macro ?! $              : $              , \
 		; forward ref error from hiding the aformentioned error
 		jump suppresserr
 	end calminstruction
+
+	cfi equ cfi.0
+	cfi.reg.bc? := 0
+	cfi.reg.de? := 1
+	cfi.reg.hl? := 2
+	cfi.reg.af? := 3
+	cfi.reg.ix? := 4
+	cfi.reg.iy? := 5
+	cfi.reg.sp? equ (6 + @ez80.ws - word?)
+	cfi.reg.pc? := 8
+  if definite sections..debug_frame?
+		virtual sections..debug_frame?.area?
+			cfi.cie := $
+			emit dword?: cfi.cie.length
+			cfi.cie.start := $
+			emit dword?: not 0
+			emit byte?: 4, 0, @ez80.ws, 0
+			uleb128 1
+			sleb128 -@ez80.ws
+			uleb128 cfi.reg.pc?
+		end virtual
+		cfi.0.location = $ ; suppress location change
+		cfi_def_cfa sp, @ez80.ws
+		cfi_same_value ix
+		cfi_val_offset sp, 0
+		cfi_offset pc, -@ez80.ws
+		virtual sections..debug_frame?.area?
+			cfi.cie.length := $ - cfi.cie.start
+		end virtual
+	end if
 
 	irpv source, sources
 		lines equ lines.%
