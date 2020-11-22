@@ -27,9 +27,9 @@ macro ?! $              : $              , \
          used           : used           , \
          virtual        : virtual        , \
          word           : word
-	local endscript, script, read, required, cfi, lines, locs, addrs,      \
-	      makesection, sections, declared, globals, splitfiles, libraries, \
-	      sources, offset, defers, output
+	local endscript, script, read, required, cfi, lines, locs, addrs,    \
+	      makesection, sections, declared, globals, publics, splitfiles, \
+	      libraries, sources, offset, defers, output
 	element endscript
 
 	include 'commands.alm'
@@ -206,15 +206,19 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction script.provide expressions*&
-		proxy globals, expression
+		proxy globals, publics, expression
+		local global, public
 	loop:
 		split expression, expressions
 		match symbol == value, expression
 		jno errsyntax
 		publish :@globals, symbol
-		arrange symbol, @globals.symbol
+		publish :@publics, symbol
+		arrange global, @globals.symbol
+		arrange public, @publics.symbol
 		compute value, value
-		publish symbol:, value
+		publish global:, value
+		publish public:, value
 		match , expressions
 		jno loop
 		exit
@@ -309,8 +313,8 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction public?! symbols*&
-		proxy declared, globals
-		local declare, global
+		proxy declared, globals, publics
+		local declare, global, public
 	loop:
 		split symbol, symbols
 		arrange declare, @declared.symbol
@@ -322,8 +326,11 @@ macro ?! $              : $              , \
 		check used symbol | used global
 		jno notrequired
 		publish :@globals, symbol
+		publish :@publics, symbol
+		arrange public, @publics.symbol
 		compute symbol, symbol
 		publish global:, symbol
+		publish public:, symbol
 		check definite required
 		jyes notrequired
 		publish required:, offset
@@ -333,19 +340,22 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction weak?! symbols*&
-		proxy globals
-		local global
+		proxy globals, publics
+		local global, public
 	loop:
 		split symbol, symbols
 		arrange global, @globals.symbol
 		check used symbol | used global
 		jno notrequired
-		check definite global
+		arrange public, @publics.symbol
+		check definite global | defined public
 		jno required
 		compute global, global
 		publish symbol:, global
 		jump notrequired
 	required:
+		publish :@globals, symbol
+		publish :@publics, symbol
 		compute symbol, symbol
 		publish global:, symbol
 		check definite required
