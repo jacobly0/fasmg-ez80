@@ -832,11 +832,12 @@ macro ?! $              : $              , \
 		once compute const_add_pc_off          , ($FF - opcode_base) / line_range
 		once compute const_add_pc_adj          , const_add_pc_off * line_range
 
-		proxy sections, version, numfiles, numdirs, filelen, \
+		proxy sections, version, numfiles, numdirs, filesize, \
 		      loc, addroff, lineoff, value, address
 		local version, after, @len, len, @headlen, headlen,               \
-		      opcidx, @opclen, opclen, numfiles, dirs, numdirs, filelen,  \
-		      cur, curdirname, curdirno, other, otherdirname, otherdirno, \
+		      opcidx, @opclen, opclen, numfiles, dirs, numdirs, filesize, \
+		      cur, curdirname, curdirno, curfilename,                     \
+		      other, otherdirname, otherdirno,                            \
 		      loc, nextaddr, addroff, nextline, lineoff, options, value,  \
 		      address, file, line, column, is_stmt, isa
 
@@ -922,17 +923,22 @@ macro ?! $              : $              , \
 		jump filesenter
 	filesloop:
 		compute numfiles, numfiles - 1
+		compute filesize, 0
+		arrange curfilename, lines.cur.=filename
+		check curfilename = '<stdin>'
+		jyes nofilesize
 		execute =virtual? =at? 0
 		execute   =file? lines.cur.=path
-		compute   filelen, $
+		compute   filesize, $
 		execute =end? =virtual?
-		execute =emit? =byte?: lines.cur.=filename, 0
+	nofilesize:
+		execute =emit? =byte?: curfilename, 0
 		check version < 5
 		jno filesentry
-		execute =uleb128? lines.cur.=dirno, 0, @filelen
+		execute =uleb128? lines.cur.=dirno, 0, @filesize
 		jump filesnext
 	filesentry:
-		execute =uleb128? lines.cur.=dirno, @filelen
+		execute =uleb128? lines.cur.=dirno, @filesize
 		execute =emit? =dqword?: lines.cur.=md5 =bswap? =dqword?
 	filesnext:
 		compute cur, cur + 1
