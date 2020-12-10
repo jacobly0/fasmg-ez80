@@ -1401,15 +1401,15 @@ macro ?! $              : $              , \
 				jyes loop
 			end calminstruction
 
-			output.longest = lengthof 'Section'
+			output.longest = lengthof 'Segment'
 			irpv section, sections
 				if output.longest < lengthof section
 					output.longest = lengthof section
 				end if
 			end irpv
 			virtual output.map
-				emit byte?: 'Section',                                        \
-				            output.longest - lengthof 'Section' + 1 dup? ' ', \
+				emit byte?: 'Segment',                                        \
+				            output.longest - lengthof 'Segment' + 1 dup? ' ', \
 				            'Base   Top    High   Length', 10,                \
 				            output.longest dup? '-', ' ------ ------ ------ -------', 10
 				irpv section, sections
