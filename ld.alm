@@ -1362,6 +1362,11 @@ macro ?! $              : $              , \
 			else if ~definite section.high?
 				load output.data: section.initialized? from? section.area?: section.base?
 				store output.data: section.initialized? at? section.base?
+			else if section.base? > section.high?
+				repeat 1, more: section.base? - section.high?
+					err 'section ', section, ' has a maximum end that is ', `more, \
+					    ' bytes before it begins'
+				end repeat
 			else if section.top? > section.high?
 				repeat 1, length: section.length?,            \
 				          more: section.top? - section.high?, \
