@@ -1221,6 +1221,11 @@ macro ?! $              : $              , \
 			end irpv
 		end namespace
 
+		calminstruction ?!
+			next required
+			execute =purge? ?
+		end calminstruction
+
 		namespace ?0
 			virtual sections..libs?.area?
 				irpv defer, defers
