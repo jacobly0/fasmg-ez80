@@ -382,7 +382,7 @@ macro ?! isreg: metadata 1 element 1 eq @ez80
 			jyes unconditional
 			isindirect rhs
 			jyes errindirection
-			compute lhs, lhs
+			compute lhs, +lhs
 			check lhs eq lhs element 1 & lhs isreg.breg & \
 			      lhs metadata 1 scale 0 and 047o = 001o
 			jno errcondition
@@ -409,64 +409,65 @@ macro ?! isreg: metadata 1 element 1 eq @ez80
 		end calminstruction
 
 		@ez80.calminstruction jq.suffixname lhs*, rhs
-			local after, address
-			proxy opcode, offset, rhs
-			compute after, @ez80.unique
-			compute @ez80.unique, after + 1
-			arrange after, =@ez80.=unique#after
+			local ws
+			proxy target, offset, opcode
+			isindirect lhs
+			jyes register
 			match , rhs
 			jno conditional
 			arrange rhs, lhs
-			arrange lhs,
+			compute lhs, not 0
 		conditional:
+			compute target, +rhs
+			compute offset, target - $ - suffixsize
+			jyes unconditional
 			isindirect rhs
 			jyes errindirection
-			check rhs relativeto after
-			jno far
-			compute offset, rhs - after
-			check offset & offset <> -suffixsize | definite rhs
-			jno after
-			check -200o <= offset & offset < 200o
-			jno far
-			match , lhs
-			jyes nearunconditional
-			compute lhs, lhs
-			check lhs eq lhs element 1 & lhs isreg.breg & \
-			      lhs metadata 1 scale 0 and 047o = 001o
-			jno farconditional
-			compute opcode, lhs metadata 1 scale 0 and 030o or 040o
-			emitsuffix
-			emit 1: @opcode, @offset
-			jump after
-		nearunconditional:
-			emitsuffix
-			emit 1: 030o, @offset
-			jump after
-		far:
-			match , lhs
-			jyes farunconditional
-			compute lhs, lhs
-		farconditional:
+			compute lhs, +lhs
 			check lhs eq lhs element 1 & lhs isreg.breg & \
 			      lhs metadata 1 scale 0 and 007o = 001o
 			jno errcondition
-			compute opcode, lhs metadata 1 scale 0 and 070o or 302o
+			check lhs metadata 1 scale 0 and 040o
+			jyes far
+		unconditional:
+			check elementsof offset | -200o > offset | offset >= 200o
+			jyes far
+			check definite rhs | -suffixsize > offset | offset > 0
+			jno skip
+			compute opcode, lhs metadata 1 scale 0 and 030o or 040o xor \
+			                (lhs scale 0 and 070o)
+			emitsuffix
+			emit 1: @opcode, @offset
+			exit
+		far:
+			arrange ws, wordsize
+			check elementsof offset | definite rhs | \
+			      -suffixsize > offset | offset > ws
+			jno skip
+			compute opcode, lhs metadata 1 scale 0 and 070o or 302o xor \
+			                (lhs scale 0 and 001o)
 			emitsuffix
 			emit 1: @opcode
-			execute =@ez80.=word wordsize, @rhs
-			jump after
-		farunconditional:
-			emitsuffix
-			emit 1: 303o
-			execute =@ez80.=word wordsize, @rhs
-		after:
-			compute address, $?
-			publish after:, address
+			execute =@ez80.=word wordsize, @target
 			exit
-		errindirection:
-			err 'invalid indirection'
+		register:
+			match , rhs
+			jno errindirection
+			compute lhs, +lhs
+			check lhs eq lhs element 1 & lhs isreg.wreg & \
+			      lhs metadata 1 scale 0 = 040o
+			jno errarguments
+			emitsuffix
+			indexprefix lhs
+			emit 1: 351o
+		skip:
+			exit
 		errcondition:
 			err 'invalid condition'
+		errindirection:
+			err 'invalid indirection'
+		errarguments:
+			err 'invalid arguments'
 		end calminstruction
 
 		@ez80.calminstruction ld.suffixname lhs*, rhs*
