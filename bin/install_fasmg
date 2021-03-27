@@ -1,12 +1,10 @@
 #!/bin/bash -ex
-case "$TRAVIS_OS_NAME" in
-    linux)  os=linux/x64 path=fasmg.x64 ;;
-    win)    os=windows path=fasmg.exe ;;
-    osx)    os=macos/x64 path=source/macos/x64/fasmg ;;
-    *)      echo "Unknown OS: $TRAVIS_OS_NAME" >&2
-            exit 1
+case `uname -s` in
+    Linux)  os=linux/x64 path=fasmg.x64              ;;
+    Darwin) os=macos/x64 path=source/macos/x64/fasmg ;;
+    *)      os=windows   path=fasmg.exe              ;;
 esac
-wget --no-verbose https://flatassembler.net/fasmg.zip --output-document=/tmp/fasmg.zip
+curl --silent --compressed "https://flatassembler.net/`curl --silent --compressed https://flatassembler.net/download.php | xmllint --html --xpath 'string(//a[starts-with(text(),"flat assembler g ")]/@href)' -`" --output /tmp/fasmg.zip
 unzip -od fasmg /tmp/fasmg.zip
 chmod +x fasmg/$path
 fasmg/$path fasmg/source/$os/fasmg.asm bin/fasmg
