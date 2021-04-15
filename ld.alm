@@ -177,13 +177,16 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	iterate <name*,list*>, library,libraries, source,sources
-		calminstruction script.name files*&
+		calminstruction script.name files&
 			proxy list, file
+			match , files
+			jyes done
 		loop:
 			split file, files
 			compute file, file
 			publish :@#list, file
 			jyes loop
+		done:
 			exit
 		end calminstruction
 	end iterate
