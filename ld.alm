@@ -129,9 +129,11 @@ macro ?! $              : $              , \
 	calminstruction script.split names*&
 		proxy splitfiles, makesection, sections, names, extension
 		local extension, @splitfile, string
-		match extension : names, names
+		match extension? : names, names
 		jno errsyntax
 		arrange @splitfile, @splitfiles.=extension?
+		match , extension
+		jyes loop
 		publish :@splitfiles, @splitfile
 		stringify extension
 		execute =virtual? =as? @extension
@@ -1249,6 +1251,7 @@ macro ?! $              : $              , \
 			section.top? := $
 			section.length? := $ - $$
 			section.initialized? := $@ - $$
+			load section.contents?: section.initialized? from section.base?
 		end virtual
 
 		if ~definite section.split? & ~definite section.high?
@@ -1374,8 +1377,7 @@ macro ?! $              : $              , \
 		irpv section, sections
 			if definite section.split?
 			else if ~definite section.high?
-				load output.data: section.initialized? from? section.area?: section.base?
-				store output.data: section.initialized? at? section.base?
+				store section.contents?: section.initialized? at? section.base?
 			else if section.base? > section.high?
 				repeat 1, more: section.base? - section.high?
 					err 'section ', section, ' has a maximum end that is ', `more, \
