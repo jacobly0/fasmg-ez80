@@ -160,18 +160,24 @@ macro ?! $              : $              , \
 
 	calminstruction script.precious names*&
 		proxy sections
-		local string
+		local condition, string
 	loop:
 		split name, names
+		match name =if? condition, name
+		jno unconditional
+		check condition
+		jno notprecious
+	unconditional:
 		arrange string, name
 		stringify string
 		check string and $FF = ''''
-		jno ident
+		jno identifier
 		compute string, name
 		compute name, +string
-	ident:
+	identifier:
 		arrange name, @sections.name?.=precious?
 		publish name:, offset
+	notprecious:
 		match , names
 		jno loop
 	end calminstruction
