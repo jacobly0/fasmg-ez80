@@ -742,8 +742,8 @@ macro ?! $              : $              , \
 		compute dirname, dirname
 		compute filename, filename
 		compute path, string dirname \
-		                  or '/' shl (lengthof filename shl 3) \
-		                  or filename shl (lengthof filename shl 3 + 8)
+		                  or '/' shl (lengthof dirname shl 3) \
+		                  or filename shl ((lengthof dirname + 1) shl 3)
 	store:
 		compute fileno, fileno
 		arrange var, lines.fileno.=path
