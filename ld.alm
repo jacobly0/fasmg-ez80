@@ -734,16 +734,25 @@ macro ?! $              : $              , \
 		compute filename, path
 		jump store
 	combine:
+		compute dirname, dirname
+		compute filename, filename
+		compute substr, filename and $FF
+		check substr = '/' | substr = '\'
+		jyes dropdir
+		compute substr, filename shr 8 and $FFFF
+		check substr = ':/' | substr = ':\'
+		jyes dropdir
 		compute substr, filename and $FFFF
 		check substr = './' | substr = '.\'
 		jno notrim
 		compute filename, string filename shr 16
 	notrim:
-		compute dirname, dirname
-		compute filename, filename
 		compute path, string dirname \
 		                  or '/' shl (lengthof dirname shl 3) \
 		                  or filename shl ((lengthof dirname + 1) shl 3)
+		jump store
+	dropdir:
+		compute path, filename
 	store:
 		compute fileno, fileno
 		arrange var, lines.fileno.=path
