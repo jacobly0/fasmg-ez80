@@ -27,21 +27,20 @@ macro ?! $              : $              , \
          used           : used           , \
          virtual        : virtual        , \
          word           : word
-	local endscript, script, read, required, cfi, lines, locs, addrs,    \
+	local script, noscript, read, required, cfi, lines, locs, addrs,     \
 	      makesection, sections, declared, globals, publics, splitfiles, \
 	      libraries, sources, offset, defers, output
-	element endscript
+	element noscript
+	offset = noscript
 
 	include 'commands.alm'
 	include 'ez80.alm'
 
-	offset = endscript
-
 	iterate name, locate, order, range, split, precious, \
 	              library, source, require, provide, map
 		macro name? line&
-			if definite endscript
-				err 'linker script command in source'
+			if definite noscript
+				noscript.name line
 			else
 				namespace sections
 					rawmatch raw, line
@@ -248,6 +247,10 @@ macro ?! $              : $              , \
 	irpv line, script
 		script.line
 	end irpv
+
+	calminstruction noscript.require symbol*
+		check symbol
+	end calminstruction
 
 	calminstruction read?! file*
 		proxy include
