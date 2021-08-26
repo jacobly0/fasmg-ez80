@@ -364,6 +364,8 @@ macro ?! $              : $              , \
 		arrange public, @publics.symbol
 		check definite global | defined public
 		jno required
+		check defined required
+		jyes notrequired
 		compute global, global
 		publish symbol:, global
 		jump notrequired
