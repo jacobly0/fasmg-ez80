@@ -1,3 +1,4 @@
+	section	.text
+	public	_main
 _main := 1
-        PUBLIC _main
-        INCLUDE "ez80insts.src"
+	include	"ez80insts.src"

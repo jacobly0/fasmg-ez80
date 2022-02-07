@@ -322,8 +322,11 @@ macro ?! $              : $              , \
 
 	calminstruction ident?! comment*
 		proxy comment
+		check defined sections..comment
+		jno skip
 		execute =section? .=comment
 		execute =emit? =byte?: @comment, 0
+	skip:
 	end calminstruction
 
 	calminstruction public?! symbols*&
@@ -922,6 +925,7 @@ macro ?! $              : $              , \
 		check numfiles
 		jyes dirnoloop
 
+		execute =section? .=debug_line
 		arrange numfiles, lines.=numfiles
 		compute cur, 0
 		arrange @len, lines.=len
@@ -1185,12 +1189,9 @@ macro ?! $              : $              , \
 		end if
 
 		namespace ?%
-			if 0
+			if 1
 				virtual
-					section .text
 					read source
-
-					section .debug_line
 					output.debug_line
 				end virtual
 			end if
