@@ -305,6 +305,10 @@ macro ?! $              : $              , \
 		jno iter
 	end calminstruction
 
+	calminstruction nosection
+		next required
+	end calminstruction
+
 	calminstruction section?! name*, flags&
 		proxy sections
 		local string
@@ -1203,6 +1207,8 @@ macro ?! $              : $              , \
 				lines.%.after := $
 			end virtual
 		end if
+
+		nosection
 	end irpv
 
 	if definite libraries and sections..libs?
@@ -1247,11 +1253,6 @@ macro ?! $              : $              , \
 				end if
 			end irpv
 		end namespace
-
-		calminstruction ?!
-			next required
-			execute =purge? ?
-		end calminstruction
 
 		namespace ?0
 			virtual sections..libs?.area?
