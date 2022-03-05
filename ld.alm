@@ -28,10 +28,11 @@ macro ?! $              : $              , \
          virtual        : virtual        , \
          word           : word
 	local script, noscript, read, required, cfi, lines, locs, addrs,     \
-	      makesection, sections, declared, globals, publics, splitfiles, \
-	      libraries, sources, offset, defers, output
-	element noscript
-	offset = noscript
+	      nosection, makesection, sections, declared, globals, publics,  \
+	      splitfiles, libraries, sources, offset, defers, output
+	noscript := 1
+	element nosection
+	offset = nosection
 
 	include 'commands.alm'
 	include 'ez80.alm'
@@ -1190,7 +1191,7 @@ macro ?! $              : $              , \
 
 		namespace ?%
 			if 1
-				virtual
+				virtual at nosection
 					read source
 					output.debug_line
 				end virtual
