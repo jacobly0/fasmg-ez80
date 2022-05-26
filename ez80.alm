@@ -374,10 +374,10 @@ macro ?! isreg: metadata 1 element 1 eq @ez80
 			isindirect lhs
 			jyes errindirection
 			compute offset, lhs - $ - suffixsize
-			check -200o <= offset & offset < 200o
-			jno errrange
 			emitsuffix
 			emit 1: 020o, @offset
+			check -200o <= offset & offset < 200o
+			jno errrange
 			exit
 		errindirection:
 			err 'invalid indirection'
@@ -398,18 +398,18 @@ macro ?! isreg: metadata 1 element 1 eq @ez80
 			      lhs metadata 1 scale 0 and 047o = 001o
 			jno errcondition
 			compute offset, rhs - $ - suffixsize
-			check -200o <= offset & offset < 200o
-			jno errrange
 			compute opcode, lhs metadata 1 scale 0 and 030o or 040o
 			emitsuffix
 			emit 1: @opcode, @offset
+			check -200o <= offset & offset < 200o
+			jno errrange
 			exit
 		unconditional:
 			compute offset, lhs - $ - suffixsize
-			check -200o <= offset & offset < 200o
-			jno errrange
 			emitsuffix
 			emit 1: 030o, @offset
+			check -200o <= offset & offset < 200o
+			jno errrange
 			exit
 		errindirection:
 			err 'invalid indirection'
