@@ -1,4 +1,4 @@
-library	'LIBRARY', 1
+library	LIBRARY, 1
 	ignore
 	export	function
 ignore:

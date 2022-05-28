@@ -1216,11 +1216,18 @@ macro ?! $              : $              , \
 			calminstruction library?! name*, version*
 				proxy defers
 				next required
-				local defer
+				local symbol, @name, type, defer
 				compute offset, 0
 				check defined required
 				jno unused
-				arrange defer, =emit =byte?: $C0, name, 0, version
+				arrange symbol, =__LibLoad_#name
+				stringify name
+				arrange @name, required.=name
+				publish @name:, name
+				compute type, $C0
+				arrange defer, =public? symbol
+				publish :@defers, defer
+				arrange defer, symbol =emit =byte?: type, @name, 0, version
 				publish :@defers, defer
 			unused:
 			end calminstruction
@@ -1228,16 +1235,17 @@ macro ?! $              : $              , \
 			iterate name, export, export_pointer
 				calminstruction name?! symbol*
 					proxy globals, defers
-					local global, defer
+					local global, type, defer
 					arrange symbol, =_#symbol
 					arrange global, @globals.symbol
 					check used global
 					jno unused
-					arrange defer, =public symbol
+					compute type, % - 1
+					arrange defer, =public? symbol
 					publish :@defers, defer
-					arrange defer, symbol :== =$ + %-1
+					arrange defer, symbol :== =$ + type
 					publish :@defers, defer
-					arrange defer, =jp offset
+					arrange defer, =jp? offset
 					publish :@defers, defer
 					check definite required
 					jyes unused
