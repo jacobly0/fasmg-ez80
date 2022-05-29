@@ -1229,7 +1229,7 @@ macro ?! $              : $              , \
 				next required
 				local symbol, @any, global, ignore, type, @name, defer
 				compute offset, 0
-				arrange symbol, =__LibLoad_#name
+				arrange symbol, =lib.name
 				arrange @any, @libraries.=anyoptional
 				arrange global, @globals.symbol
 				match ignore? =optional? ignore?, flags.
