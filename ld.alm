@@ -20,6 +20,7 @@ macro ?! $              : $              , \
          iterate        : iterate        , \
          load           : load           , \
          macro          : macro          , \
+         match          : match          , \
          namespace      : namespace      , \
          or             : or             , \
          rawmatch       : rawmatch       , \
@@ -185,17 +186,21 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	iterate <name*,list*>, library,libraries, source,sources
+		list.count = 0
 		calminstruction script.name files&
-			proxy list, file
+			once arrange @list, list
+			once arrange @count, list.count
+			local count
 			match , files
 			jyes done
+			compute count, @count
 		loop:
 			split file, files
-			compute file, file
-			publish :@#list, file
+			publish :@list, file
+			compute count, count + 1
 			jyes loop
+			publish @count, count
 		done:
-			exit
 		end calminstruction
 	end iterate
 
@@ -253,11 +258,16 @@ macro ?! $              : $              , \
 		check symbol
 	end calminstruction
 
-	calminstruction read?! file*
-		proxy include
-		match ., file
-		jno ignore
-		execute @include! file
+	calminstruction read? file*, enabled: 1
+		proxy if, include, end
+		check enabled
+		jyes enabled1
+		execute @if? enabled
+	enabled1:
+		execute 	@include?! file
+		jyes enabled2
+		execute @end? @if?
+	enabled2:
 	ignore:
 	end calminstruction
 
@@ -1211,20 +1221,34 @@ macro ?! $              : $              , \
 		nosection
 	end irpv
 
-	if definite libraries and sections..libs?
+	if libraries.count
 		namespace libraries
+			flags equ
 			calminstruction library?! name*, version*
-				proxy defers
+				proxy globals, libraries, defers
 				next required
-				local symbol, @name, type, defer
+				local symbol, @any, global, ignore, type, @name, defer
 				compute offset, 0
-				check defined required
-				jno unused
 				arrange symbol, =__LibLoad_#name
+				arrange @any, @libraries.=anyoptional
+				arrange global, @globals.symbol
+				match ignore? =optional? ignore?, flags.
+				jno detectoptional
+				publish @any, offset
+				jump optional
+			detectoptional:
+				check ~defined @any & used global
+				jyes optional
+				compute type, $C0
+				jump required
+			optional:
+				compute type, $C1
+			required:
+				check used global | defined required
+				jno unused
 				stringify name
 				arrange @name, required.=name
 				publish @name:, name
-				compute type, $C0
 				arrange defer, =public? symbol
 				publish :@defers, defer
 				arrange defer, symbol =emit =byte?: type, @name, 0, version
@@ -1256,9 +1280,10 @@ macro ?! $              : $              , \
 			end iterate
 
 			irpv library, libraries
-				if 0
-					read library
-				end if
+				match file @flags, library @flags
+					flags. equ @flags
+					read file, 0
+				end match
 			end irpv
 		end namespace
 
