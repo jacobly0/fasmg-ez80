@@ -1232,6 +1232,8 @@ macro ?! $              : $              , \
 				arrange symbol, =lib.name
 				arrange @any, @libraries.=anyoptional
 				arrange global, @globals.symbol
+				match ignore? =neveroptional? ignore?, flags.
+				jyes required
 				match ignore? =optional? ignore?, flags.
 				jno detectoptional
 				publish @any, offset
@@ -1239,11 +1241,12 @@ macro ?! $              : $              , \
 			detectoptional:
 				check ~defined @any & used global
 				jyes optional
+			required:
 				compute type, $C0
-				jump required
+				jump typed
 			optional:
 				compute type, $C1
-			required:
+			typed:
 				check used global | defined required
 				jno unused
 				stringify name
