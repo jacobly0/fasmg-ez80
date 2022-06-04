@@ -1320,23 +1320,23 @@ macro ?! $              : $              , \
 	end irpv
 
 	namespace output.elf
-		ELFCLASS32          := 1
-		ELFDATA2LSB         := 1
-		ELFOSABI_STANDALONE := 255
-		ET_EXEC             := 2
-		EM_Z80              := 220
-		EF_Z80_EZ80         := 1
-		EV_CURRENT          := 1
-		SHT_NULL            := 0
-		SHT_PROGBITS        := 1
-		SHT_SYMTAB          := 2
-		SHT_STRTAB          := 3
-		SHT_NOBITS          := 8
-		SHF_WRITE           := 1 shl 0
-		SHF_ALLOC           := 1 shl 1
-		SHF_EXECINSTR       := 1 shl 2
-		SHF_MERGE           := 1 shl 4
-		SHF_STRINGS         := 1 shl 5
+		ELFCLASS32           := 1
+		ELFDATA2LSB          := 1
+		ELFOSABI_STANDALONE  := 255
+		ET_EXEC              := 2
+		EM_Z80               := 220
+		EF_Z80_MACH_EZ80_ADL := 1 shl 7 or 4
+		EV_CURRENT           := 1
+		SHT_NULL             := 0
+		SHT_PROGBITS         := 1
+		SHT_SYMTAB           := 2
+		SHT_STRTAB           := 3
+		SHT_NOBITS           := 8
+		SHF_WRITE            := 1 shl 0
+		SHF_ALLOC            := 1 shl 1
+		SHF_EXECINSTR        := 1 shl 2
+		SHF_MERGE            := 1 shl 4
+		SHF_STRINGS          := 1 shl 5
 		macro info flags, entsize, section
 			flags = 0
 			entsize = 0
@@ -1370,7 +1370,7 @@ macro ?! $              : $              , \
 				           8 dup? 0
 				emit word?: output.elf.ET_EXEC, output.elf.EM_Z80
 				emit dword?: output.elf.EV_CURRENT, entry, phoff, shoff, \
-				             output.elf.EF_Z80_EZ80
+				             output.elf.EF_Z80_MACH_EZ80_ADL
 				emit word?: ehsize, phentsize, phnum, shentsize, shnum, shstrndx
 			ehsize:
 
