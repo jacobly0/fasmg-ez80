@@ -24,6 +24,7 @@ macro ?! $              : $              , \
          namespace      : namespace      , \
          or             : or             , \
          rawmatch       : rawmatch       , \
+         scale          : scale          , \
          shl            : shl            , \
          used           : used           , \
          virtual        : virtual        , \
@@ -76,10 +77,39 @@ macro ?! $              : $              , \
 		execute =end? =virtual?
 	end calminstruction
 
+	calminstruction splitfiles.update name*, extension
+		proxy sections, splitfiles
+		local string, @splitfile
+		arrange string, name
+		stringify string
+		check string and $FF = ''''
+		jno ident
+		compute name, +name
+	ident:
+		arrange name, @sections.name?
+		arrange @splitfile, @splitfiles..extension
+		publish :@splitfile, name
+		arrange name, name.=split?
+		publish name:, @splitfile
+	end calminstruction
+
 	calminstruction script.locate expression*
-		proxy expression
-		match name =at? base, expression
+		proxy sections, expression
+		local name, options, base, metadata
+		match name= options? =at? base, expression, ()
 		jno errsyntax
+		match =virtual? options?, options
+		jno novirtual
+		call splitfiles.update, name
+	novirtual:
+		match =element? metadata?, options
+		jno noelement
+		execute =element? @sections.name?.=element? metadata
+		jump makesection
+	noelement:
+		match , options
+		jno errsyntax
+	makesection:
 		call makesection, name, base
 		exit
 	errsyntax:
@@ -130,31 +160,23 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction script.split names*&
-		proxy splitfiles, sections, names, extension
+		proxy splitfiles, sections, names, string
 		local extension, @splitfile, string
 		match extension? : names, names
 		jno errsyntax
-		arrange @splitfile, @splitfiles.extension?
 		match , extension
 		jyes loop
+		arrange @splitfile, @splitfiles..extension
 		publish :@splitfiles, @splitfile
-		stringify extension
-		execute =virtual? =as? @extension
+		arrange string, extension
+		stringify string
+		execute =virtual? =as? @string
 		execute @splitfile.=area::
 		execute =end? =virtual?
 	loop:
 		split name, names
 		call makesection, name
-		arrange string, name
-		stringify string
-		check string and $FF = ''''
-		jno ident
-		compute name, +name
-	ident:
-		arrange name, @sections.name?
-		publish :@splitfile, name
-		arrange name, name.=split?
-		publish name:, @splitfile
+		call splitfiles.update, name, extension
 		match , names
 		jno loop
 		exit
@@ -1321,11 +1343,11 @@ macro ?! $              : $              , \
 		end virtual
 
 		if ~definite section.split? & ~definite section.high?
-			if ~definite output.base | output.base > section.base?
-				output.base = section.base?
+			if ~definite output.base | output.base > section.base? scale 0
+				output.base = section.base? scale 0
 			end if
-			if ~definite output.top | output.top < section.top?
-				output.top = section.top?
+			if ~definite output.top | output.top < section.top? scale 0
+				output.top = section.top? scale 0
 			end if
 		end if
 	end irpv
@@ -1416,7 +1438,8 @@ macro ?! $              : $              , \
 						shcur = shcur + 1
 						output.elf.info flags, entsize, section
 						emit dword?: section.nameoff?, output.elf.SHT_NOBITS, flags, \
-						             section.base?, ehsize, section.length?, 0, 0, 0, entsize
+						             section.base? scale 0, ehsize, section.length?, \
+						             0, 0, 0, entsize
 					end if
 				end irpv
 				irpv section, splitfile
@@ -1443,7 +1466,7 @@ macro ?! $              : $              , \
 		irpv section, sections
 			if definite section.split?
 			else if ~definite section.high?
-				store section.contents?: section.initialized? at? section.base?
+				store section.contents?: section.initialized? at? section.base? scale 0
 			else if section.base? > section.high?
 				repeat 1, more: section.base? - section.high?
 					err 'section ', section, ' has a maximum end that is ', `more, \
