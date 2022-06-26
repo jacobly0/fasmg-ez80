@@ -39,6 +39,13 @@ macro ?! $              : $              , \
 	include 'commands.alm'
 	include 'ez80.alm'
 
+	calminstruction @ez80.word size*, value*
+		proxy size, value
+		compute size, size
+		compute value, value and (1 shl (size shl 3) - 1)
+		emit @size: @value
+	end calminstruction
+
 	iterate name, locate, order, range, split, precious, \
 	              library, source, require, provide, map
 		macro name? line&
