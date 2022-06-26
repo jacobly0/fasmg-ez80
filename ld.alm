@@ -77,10 +77,10 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction script.locate expression*
-		proxy makesection, expression
+		proxy expression
 		match name =at? base, expression
 		jno errsyntax
-		execute @makesection name, base
+		call makesection, name, base
 		exit
 	errsyntax:
 		stringify expression
@@ -88,12 +88,14 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction script.order names*&
-		proxy makesection, sections
+		proxy sections
+		local base
 		split name, names
 		jump enter
 	loop:
 		split name, names
-		execute @makesection name, prev.=base? + prev.=length?
+		arrange base, prev.=base? + prev.=length?
+		call makesection, name, base
 	enter:
 		arrange prev, name
 		stringify name
@@ -107,11 +109,11 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction script.range expression*
-		proxy makesection, sections, expression
+		proxy sections, expression
 		local name, base, high, @high
 		match name= base : high, expression
 		jno errsyntax
-		execute @makesection name, base
+		call makesection, name, base
 		arrange @high, name
 		stringify name
 		check name and $FF = ''''
@@ -128,11 +130,11 @@ macro ?! $              : $              , \
 	end calminstruction
 
 	calminstruction script.split names*&
-		proxy splitfiles, makesection, sections, names, extension
+		proxy splitfiles, sections, names, extension
 		local extension, @splitfile, string
 		match extension? : names, names
 		jno errsyntax
-		arrange @splitfile, @splitfiles.=extension?
+		arrange @splitfile, @splitfiles.extension?
 		match , extension
 		jyes loop
 		publish :@splitfiles, @splitfile
@@ -142,7 +144,7 @@ macro ?! $              : $              , \
 		execute =end? =virtual?
 	loop:
 		split name, names
-		execute @makesection name
+		call makesection, name
 		arrange string, name
 		stringify string
 		check string and $FF = ''''
@@ -273,47 +275,47 @@ macro ?! $              : $              , \
 
 	required equ required.0
 
-	calminstruction uleb128? values*&
-		proxy enc
-		local enc
-	iter:
-		split value, values
+	calminstruction output.uleb128 value*
+		proxy value, encoding
+		local encoding
 		compute value, value
 		check value >= 0
 		jyes enter
 		err 'uleb128 argument is negative'
 	loop:
-		compute enc, value and $7F or $80
-		execute =emit? =byte?: @enc
+		compute encoding, value and $7F or $80
+		execute =emit? =byte?: @encoding
 		compute value, value shr 7
 	enter:
 		check value < $80
 		jno loop
-		compute enc, value
-		execute =emit? =byte?: @enc
-		match , values
-		jno iter
+		execute =emit? =byte?: @value
 	end calminstruction
 
-	calminstruction sleb128? values*&
-		proxy enc, value
-		local enc
-	iter:
-		split value, values
+	calminstruction output.sleb128 value*
+		proxy value, encoding
+		local encoding
 		compute value, value
 		jump enter
 	loop:
-		compute enc, value and $7F or $80
-		execute =emit? =byte?: @enc
+		compute encoding, value and $7F or $80
+		execute =emit? =byte?: @encoding
 		compute value, value shr 7
 	enter:
 		check value >= -$40 & value < $40
 		jno loop
-		compute enc, value and $7F
-		execute =emit? =byte?: @enc
-		match , values
-		jno iter
+		compute value, value and $7F
+		execute =emit? =byte?: @value
 	end calminstruction
+
+	iterate signed, u, s
+		calminstruction signed#leb128? values*&
+		loop:
+			split value, values
+			call output.signed#leb128, value
+			jyes loop
+		end calminstruction
+	end iterate
 
 	calminstruction nosection
 		next required
@@ -528,23 +530,26 @@ macro ?! $              : $              , \
 		once compute DW_CFA_def_cfa            , 0x0c
 		once compute DW_CFA_def_cfa_sf         , 0x12
 
-		proxy cfi, off
+		proxy cfi
 		local @cfa_offset
 		arrange @cfa_offset, cfi.=cfa_offset
 		compute off, off
 		publish @cfa_offset, off
-		execute @cfi.=location
-	  check off mod -@ez80.ws
+		call cfi.location
+		check off mod -@ez80.ws
 		jno sf
 		execute =emit? =byte?: DW_CFA_def_cfa
-		execute =uleb128? @cfi.=reg.reg?, @off
+		arrange reg, @cfi.=reg.reg?
+		call output.uleb128, reg
+		call output.uleb128, off
 		execute =end? =virtual?
 		exit
 	sf:
 		compute off, off / -@ez80.ws
 		execute =emit? =byte?: DW_CFA_def_cfa_sf
-		execute =uleb128? @cfi.=reg.reg?
-		execute =sleb128? @off
+		arrange reg, @cfi.=reg.reg?
+		call output.uleb128, reg
+		call output.sleb128, off
 		execute =end? =virtual?
 	end calminstruction
 
@@ -553,9 +558,10 @@ macro ?! $              : $              , \
 		once compute DW_CFA_def_cfa_register   , 0x0d
 
 		proxy cfi
-		execute @cfi.=location
+		call cfi.location
 		execute =emit? =byte?: DW_CFA_def_cfa_register
-		execute =uleb128? @cfi.=reg.reg?
+		arrange reg, @cfi.=reg.reg?
+		call output.uleb128, reg
 		execute =end? =virtual?
 	end calminstruction
 
@@ -564,31 +570,29 @@ macro ?! $              : $              , \
 		once compute DW_CFA_def_cfa_offset     , 0x0e
 		once compute DW_CFA_def_cfa_offset_sf  , 0x13
 
-		proxy cfi, off
 		local @cfa_offset
 		arrange @cfa_offset, cfi.=cfa_offset
 		compute off, off
 		publish @cfa_offset, off
-		execute @cfi.=location
+		call cfi.location
 		check off mod -@ez80.ws
 		jno sf
 		execute =emit? =byte?: DW_CFA_def_cfa_offset
-		execute =uleb128? @off
+		call output.uleb128, off
 		execute =end? =virtual?
 		exit
 	sf:
 		compute off, off / -@ez80.ws
 		execute =emit? =byte?: DW_CFA_def_cfa_offset_sf
-		execute =sleb128? @off
+		call output.sleb128, off
 		execute =end? =virtual?
 	end calminstruction
 
 	calminstruction cfi_adjust_cfa_offset? off*
-		proxy off
 		local @cfa_offset
 		arrange @cfa_offset, cfi.=cfa_offset
 		compute off, @cfa_offset + off
-		execute =cfi_def_cfa_offset? @off
+		call cfi_def_cfa_offset?, off
 	end calminstruction
 
 	calminstruction cfi_offset? reg*, off*
@@ -597,7 +601,7 @@ macro ?! $              : $              , \
 		once compute DW_CFA_offset_extended    , 0x05
 		once compute DW_CFA_offset_extended_sf , 0x11
 
-		proxy cfi, opc, off
+		proxy cfi, opc
 		execute @cfi.=location
 		arrange reg, @cfi.=reg.reg?
 		compute off, off / -@ez80.ws
@@ -607,18 +611,19 @@ macro ?! $              : $              , \
 		jno ext
 		compute opc, DW_CFA_offset or reg
 		execute =emit? =byte?: @opc
-		execute =uleb128? @off
+		call output.uleb128, off
 		execute =end? =virtual?
 		exit
 	ext:
 		execute =emit? =byte?: DW_CFA_offset_extended
-		execute =uleb128? reg, @off
+		call output.uleb128, reg
+		call output.uleb128, off
 		execute =end? =virtual?
 		exit
 	sf:
 		execute =emit? =byte?: DW_CFA_offset_extended_sf
-		execute =uleb128? reg
-		execute =sleb128? @off
+		call output.uleb128, reg
+		call output.sleb128, off
 		execute =end? =virtual?
 	end calminstruction
 
@@ -627,29 +632,29 @@ macro ?! $              : $              , \
 		once compute DW_CFA_val_offset         , 0x14
 		once compute DW_CFA_val_offset_sf      , 0x15
 
-		proxy cfi, off
+		proxy cfi
 		execute @cfi.=location
 		arrange reg, @cfi.=reg.reg?
 		compute off, off / -@ez80.ws
 		check off < 0
 		jyes sf
 		execute =emit? =byte?: DW_CFA_val_offset
-		execute =uleb128? reg, @off
+		call output.uleb128, reg
+		call output.uleb128, off
 		execute =end? =virtual?
 		exit
 	sf:
 		execute =emit? =byte?: DW_CFA_val_offset_sf
-		execute =uleb128? reg
-		execute =sleb128? @off
+		call output.uleb128, reg
+		call output.sleb128, off
 		execute =end? =virtual?
 	end calminstruction
 
 	calminstruction cfi_rel_offset? reg*, off*
-		proxy off
 		local @cfa_offset
 		arrange @cfa_offset, cfi.=cfa_offset
 		compute off, @cfa_offset + off
-		execute =cfi_offset? reg, @off
+		call cfi_offset?, reg, off
 	end calminstruction
 
 	calminstruction cfi_register? reg1*, reg2*
@@ -658,10 +663,11 @@ macro ?! $              : $              , \
 
 		proxy cfi
 		execute @cfi.=location
-		arrange reg1, @cfi.=reg.reg1?
-		arrange reg2, @cfi.=reg.reg2?
 		execute =emit? =byte?: DW_CFA_def_cfa_register
-		execute =uleb128? reg1, reg2
+		arrange reg1, @cfi.=reg.reg1?
+		call output.uleb128, reg1
+		arrange reg2, @cfi.=reg.reg2?
+		call output.uleb128, reg2
 		execute =end? =virtual?
 	end calminstruction
 
@@ -681,7 +687,7 @@ macro ?! $              : $              , \
 		exit
 	ext:
 		execute =emit? =byte?: DW_CFA_restore_extended
-		execute =uleb128? reg
+		call output.uleb128, reg
 		execute =end? =virtual?
 	end calminstruction
 
@@ -693,7 +699,7 @@ macro ?! $              : $              , \
 		execute @cfi.=location
 		arrange reg, @cfi.=reg.reg?
 		execute =emit? =byte?: DW_CFA_undefined
-		execute =uleb128? reg
+		call output.uleb128, reg
 		execute =end? =virtual?
 	end calminstruction
 
@@ -705,7 +711,7 @@ macro ?! $              : $              , \
 		execute @cfi.=location
 		arrange reg, @cfi.=reg.reg?
 		execute =emit? =byte?: DW_CFA_same_value
-		execute =uleb128? reg
+		call output.uleb128, reg
 		execute =end? =virtual?
 	end calminstruction
 
@@ -885,8 +891,7 @@ macro ?! $              : $              , \
 		once compute const_add_pc_off          , ($FF - opcode_base) / line_range
 		once compute const_add_pc_adj          , const_add_pc_off * line_range
 
-		proxy sections, version, numfiles, numdirs, filesize, \
-		      loc, addroff, lineoff, value, address
+		proxy sections, version, loc, value, address
 		local version, after, @len, len, @headlen, headlen,               \
 		      opcidx, @opclen, opclen, numfiles, dirs, numdirs, filesize, \
 		      cur, curdirname, curdirno, curfilename,                     \
@@ -968,12 +973,12 @@ macro ?! $              : $              , \
 		jump filesnext
 	entries:
 		execute =emit? =byte?: 1, DW_LNCT_path, DW_FORM_string
-		execute =uleb128? @numdirs
+		call output.uleb128, numdirs
 		execute =emit? =byte?: dirs 4, DW_LNCT_path, DW_FORM_string,           \
 		                               DW_LNCT_directory_index, DW_FORM_udata, \
 		                               DW_LNCT_size, DW_FORM_udata,            \
 		                               DW_LNCT_MD5, DW_FORM_data16
-		execute =uleb128? @numfiles
+		call output.uleb128, numfiles
 		jump filesenter
 	filesloop:
 		compute numfiles, numfiles - 1
@@ -989,10 +994,16 @@ macro ?! $              : $              , \
 		execute =emit? =byte?: curfilename, 0
 		check version < 5
 		jno filesentry
-		execute =uleb128? lines.cur.=dirno, 0, @filesize
+		arrange value, lines.cur.=dirno
+		call output.uleb128, value
+		compute value, 0
+		call output.uleb128, value
+		call output.uleb128, filesize
 		jump filesnext
 	filesentry:
-		execute =uleb128? lines.cur.=dirno, @filesize
+		arrange value, lines.cur.=dirno
+		call output.uleb128, value
+		call output.uleb128, filesize
 		execute =emit? =dqword?: lines.cur.=md5 =bswap? =dqword?
 	filesnext:
 		compute cur, cur + 1
@@ -1028,7 +1039,7 @@ macro ?! $              : $              , \
 		check file = value
 		jyes nextopt
 		execute =emit? =byte?: DW_LNS_set_file
-		execute =uleb128? @value
+		call output.uleb128, value
 		compute file, value
 		jump nextopt
 	optloop:
@@ -1052,7 +1063,7 @@ macro ?! $              : $              , \
 		check column = value
 		jyes nextopt
 		execute =emit? =byte?: DW_LNS_set_column
-		execute =uleb128? @value
+		call output.uleb128, value
 		compute column, value	
 		jump nextopt
 	basic_block:
@@ -1076,7 +1087,7 @@ macro ?! $              : $              , \
 		check isa = value
 		jyes nextopt
 		execute =emit? =byte?: DW_LNS_set_isa
-		execute =uleb128? @value
+		call output.uleb128, value
 		compute isa, value
 		jump nextopt
 	discriminator:
@@ -1086,10 +1097,10 @@ macro ?! $              : $              , \
 		compute opcidx, opcidx + 1
 		arrange @opclen, lines.=opc.opcidx
 		execute =emit? =byte?: 0
-		execute =uleb128? @opclen
+		call output.uleb128, @opclen
 		compute opclen, $
 		execute =emit? =byte?: DW_LNE_set_discriminator
-		execute =uleb128? @value
+		call output.uleb128, value
 		compute opclen, $ - opclen
 		publish @opclen:, opclen
 		jump nextopt
@@ -1103,7 +1114,7 @@ macro ?! $              : $              , \
 		check lineoff >= 0 & lineoff < line_range
 		jyes nearline
 		execute =emit? =byte?: DW_LNS_advance_line
-		execute =sleb128? @lineoff
+		call output.sleb128, lineoff
 		compute lineoff, 0
 	nearline:
 		compute addroff, nextaddr - address
@@ -1118,7 +1129,7 @@ macro ?! $              : $              , \
 		jump special
 	advpc:
 		execute =emit? =byte?: DW_LNS_advance_pc
-		execute =uleb128? @addroff
+		call output.uleb128, addroff
 		compute value, opcode_base + lineoff
 	special:
 		execute =emit? =byte?: @value
@@ -1130,13 +1141,13 @@ macro ?! $              : $              , \
 		compute addroff, after - address
 		check addroff
 		jno done
-		check @addroff = const_add_pc_off
+		check addroff = const_add_pc_off
 		jno lastadvpc
 		execute =emit? =byte?: DW_LNS_const_add_pc
 		jump done
 	lastadvpc:
 		execute =emit? =byte?: DW_LNS_advance_pc
-		execute =uleb128? @addroff
+		call output.uleb128, addroff
 	done:
 		execute =emit? =byte?: 0, 1, DW_LNE_end_sequence
 
@@ -1175,9 +1186,9 @@ macro ?! $              : $              , \
 			cfi.cie.start := $
 			emit dword?: not 0
 			emit byte?: 4, 0, @ez80.ws, 0
-			uleb128 1
-			sleb128 -@ez80.ws
-			uleb128 cfi.reg.pc?
+			output.uleb128 1
+			output.sleb128 -@ez80.ws
+			output.uleb128 cfi.reg.pc?
 		end virtual
 		cfi.0.location = $ ; suppress location change
 		cfi_def_cfa sp, @ez80.ws
@@ -1383,13 +1394,13 @@ macro ?! $              : $              , \
 				emit byte?: 0
 				irpv section, sections
 					if ~definite section.split? & section.length?
-						section.nameoff? := $ - .
+						section.nameoff? = $ - .
 						emit byte?: section, 0
 					end if
 				end irpv
 				irpv section, splitfile
 					if section.length?
-						section.nameoff? := $ - .
+						section.nameoff? = $ - .
 						emit byte?: section, 0
 					end if
 				end irpv
