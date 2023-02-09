@@ -40,10 +40,7 @@ macro ?! $              : $              , \
 	include 'ez80.alm'
 
 	calminstruction @ez80.word size*, value*
-		proxy size, value
-		compute size, size
-		compute value, value and (1 shl (size shl 3) - 1)
-		emit @size: @value
+		emit size, value and (1 shl (size shl 3) - 1)
 	end calminstruction
 
 	iterate name, locate, order, range, split, precious, \
@@ -121,7 +118,7 @@ macro ?! $              : $              , \
 		exit
 	errsyntax:
 		stringify expression
-		err 'invalid syntax in linker command: locate ', @expression
+		execute =err? 'invalid syntax in linker command: locate ', @expression
 	end calminstruction
 
 	calminstruction script.order names*&
@@ -163,7 +160,7 @@ macro ?! $              : $              , \
 		exit
 	errsyntax:
 		stringify expression
-		err 'invalid syntax in linker command: range ', @expression
+		execute =err? 'invalid syntax in linker command: range ', @expression
 	end calminstruction
 
 	calminstruction script.split names*&
@@ -189,7 +186,7 @@ macro ?! $              : $              , \
 		exit
 	errsyntax:
 		stringify names
-		err 'invalid syntax in linker command: split ', @names
+		execute =err? 'invalid syntax in linker command: split ', @names
 	end calminstruction
 
 	calminstruction script.precious names*&
@@ -271,7 +268,7 @@ macro ?! $              : $              , \
 		exit
 	errsyntax:
 		stringify expression
-		err 'invalid syntax in linker command: provide ', @expression
+		execute =err? 'invalid syntax in linker command: provide ', @expression
 	end calminstruction
 
 	calminstruction script.map
@@ -311,6 +308,7 @@ macro ?! $              : $              , \
 		check value >= 0
 		jyes enter
 		err 'uleb128 argument is negative'
+		exit
 	loop:
 		compute encoding, value and $7F or $80
 		execute =emit? =byte?: @encoding
@@ -786,11 +784,11 @@ macro ?! $              : $              , \
 		jno splitloop
 		compute dirname, string path and (1 shl index - 1)
 		compute filename, string path shr (index + 8)
-		jump store
+		jump done
 	simple:
 		compute dirname, ''
 		compute filename, path
-		jump store
+		jump done
 	combine:
 		compute dirname, dirname
 		compute filename, filename
@@ -808,10 +806,10 @@ macro ?! $              : $              , \
 		compute path, string dirname \
 		                  or '/' shl (lengthof dirname shl 3) \
 		                  or filename shl ((lengthof dirname + 1) shl 3)
-		jump store
+		jump done
 	dropdir:
 		compute path, filename
-	store:
+	done:
 		compute fileno, fileno
 		arrange var, lines.fileno.=path
 		publish var:, path
@@ -1189,7 +1187,7 @@ macro ?! $              : $              , \
 	errversion:
 		arrange version, version
 		stringify version
-		err 'unknown dwarf version: ', @version
+		execute =err? 'unknown dwarf version: ', @version
 
 	errsyntax:
 		stringify loc
@@ -1208,7 +1206,7 @@ macro ?! $              : $              , \
 	cfi.reg.iy? := 5
 	cfi.reg.sp? equ (6 + @ez80.ws - word?)
 	cfi.reg.pc? := 8
-  if definite sections..debug_frame?
+	if definite sections..debug_frame?
 		virtual sections..debug_frame?.area?
 			cfi.cie := $
 			emit dword?: cfi.cie.length
