@@ -77,7 +77,13 @@ iterate <name,size,cond>, w,word,no, l,long,yes
 		match current =, count, count, ()
 		jno splitend
 	splitloop:
+		match ?, current
+		jyes splitreserve
 		execute =@ez80.=word =size?, @current
+		jump splitnext
+	splitreserve:
+		execute =rl? 1
+	splitnext:
 		match current =, count, count, ()
 		jyes splitloop
 	splitend:
@@ -85,11 +91,18 @@ iterate <name,size,cond>, w,word,no, l,long,yes
 		check count
 		jno repeatend
 	repeatloop:
+		match ?, current
 		arrange duplicate, sequence
 		match ( duplicate ), sequence
 	repeatsplitloop:
 		split current, duplicate
+		match ?, current
+		jyes repeatreserve
 		execute =@ez80.=word =size?, @current
+		jump repeatnext
+	repeatreserve:
+		execute =rl? 1
+	repeatnext:
 		jyes repeatsplitloop
 		compute count, count - 1
 		check count
